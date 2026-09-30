@@ -1,0 +1,24 @@
+{
+  "name": "@lixi/contract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/test/lixi-simulator.ts"
+  },
+  "scripts": {
+    "compact": "compact compile src/lixi.compact src/managed/lixi",
+    "compact:fast": "compact compile --skip-zk src/lixi.compact src/managed/lixi",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.16.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

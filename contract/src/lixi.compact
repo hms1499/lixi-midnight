@@ -1,0 +1,84 @@
+// Lixi — private red envelopes on Midnight.
+// SPDX-License-Identifier: Apache-2.0
+
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// One share of an envelope. Padding shares have amount 0.
+export struct Share {
+  secret: Bytes<32>,
+  amount: Uint<64>
+}
+
+// One step of a Merkle path: the sibling hash and whether it sits on the left.
+export struct PathEntry {
+  sibling: Field,
+  goesLeft: Boolean
+}
+
+export struct Envelope {
+  root: Field,
+  deposit: Uint<128>,
+  expiry: Uint<64>,
+  refundAddress: UserAddress,
+  onePerAddress: Boolean,
+  refunded: Boolean
+}
+
+struct LeafPreimage {
+  tag: Field,
+  id: Bytes<32>,
+  secret: Bytes<32>,
+  amount: Uint<64>
+}
+
+export sealed ledger minDuration: Uint<64>;
+export sealed ledger maxDuration: Uint<64>;
+export ledger envelopes: Map<Bytes<32>, Envelope>;
+export ledger nullifiers: Set<Field>;
+export ledger addrClaims: Set<Field>;
+
+constructor(minDur: Uint<64>, maxDur: Uint<64>) {
+  assert(minDur < maxDur, "bad durations");
+  minDuration = disclose(minDur);
+  maxDuration = disclose(maxDur);
+}
+
+// Hashes. Merkle nodes, nullifiers and address keys use transientHash (Poseidon):
+// this deployment is immutable (no maintenance authority), so the algorithm is
+// frozen for the contract's lifetime. Domain tags: 1 leaf, 2 node, 3 nullifier, 4 address.
+export pure circuit envelopeId(nonce: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "lixi:id:v1"), nonce]);
+}
+
+export pure circuit leafHash(id: Bytes<32>, share: Share): Field {
+  return transientHash<LeafPreimage>(LeafPreimage { tag: 1, id: id, secret: share.secret, amount: share.amount });
+}
+
+export pure circuit nodeHash(left: Field, right: Field): Field {
+  return transientHash<Vector<3, Field>>([2, left, right]);
+}
+
+export pure circuit nullifierOf(id: Bytes<32>, secret: Bytes<32>): Field {
+  return transientHash<[Field, Bytes<32>, Bytes<32>]>([3, id, secret]);
+}
+
+export pure circuit addrKey(id: Bytes<32>, recipient: UserAddress): Field {
+  return transientHash<[Field, Bytes<32>, Bytes<32>]>([4, id, recipient.bytes]);
+}
+
+export pure circuit rootOf(id: Bytes<32>, shares: Vector<16, Share>): Field {
+  const l = map((s: Share): Field => leafHash(id, s), shares);
+  const a = [nodeHash(l[0], l[1]), nodeHash(l[2], l[3]), nodeHash(l[4], l[5]), nodeHash(l[6], l[7]),
+             nodeHash(l[8], l[9]), nodeHash(l[10], l[11]), nodeHash(l[12], l[13]), nodeHash(l[14], l[15])];
+  const b = [nodeHash(a[0], a[1]), nodeHash(a[2], a[3]), nodeHash(a[4], a[5]), nodeHash(a[6], a[7])];
+  const c = [nodeHash(b[0], b[1]), nodeHash(b[2], b[3])];
+  return nodeHash(c[0], c[1]);
+}
+
+export pure circuit rootFromPath(leaf: Field, path: Vector<4, PathEntry>): Field {
+  return fold((acc: Field, e: PathEntry): Field =>
+                e.goesLeft ? nodeHash(e.sibling, acc) : nodeHash(acc, e.sibling),
+              leaf, path);
+}
