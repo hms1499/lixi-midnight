@@ -8,7 +8,7 @@ import {
   type ChargedState,
   type Effects,
 } from '@midnight-ntwrk/compact-runtime';
-import { Contract, ledger, type Ledger, type Share } from '../managed/lixi/contract/index.js';
+import { Contract, ledger, type Ledger, type PathEntry, type Share } from '../managed/lixi/contract/index.js';
 import { emptyPrivateState, withEnvelopeShares, witnesses, type LixiPrivateState } from '../private-state.js';
 
 export const T0 = 1_800_000_000;
@@ -40,6 +40,19 @@ export class LixiSimulator {
     return this.run((ctx) =>
       this.contract.impureCircuits.createEnvelope(ctx, nonce, expiry, { bytes: refundAddress }, onePerAddress),
     );
+  }
+
+  claim(id: Uint8Array, share: Share, path: PathEntry[], recipient: Uint8Array): void {
+    this.run((ctx) => this.contract.impureCircuits.claim(ctx, id, share, path, { bytes: recipient }));
+  }
+
+  /** NIGHT sent to each user address by the last call, keyed by hex address. */
+  lastPayouts(): Map<string, bigint> {
+    const out = new Map<string, bigint>();
+    for (const [[, to], amount] of this.lastEffects?.claimedUnshieldedSpends ?? []) {
+      if (to.tag === 'user') out.set(to.address, (out.get(to.address) ?? 0n) + amount);
+    }
+    return out;
   }
 
   /** NIGHT pulled into the contract by the last call. */

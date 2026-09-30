@@ -112,3 +112,25 @@ export circuit createEnvelope(nonce: Bytes<32>,
   });
   return id;
 }
+
+// Claim one share. Reads the envelope but never writes it, so claims do not conflict.
+export circuit claim(id: Bytes<32>, share: Share, path: Vector<4, PathEntry>, recipient: UserAddress): [] {
+  const eid = disclose(id);
+  assert(envelopes.member(eid), "no envelope");
+  const env = envelopes.lookup(eid);
+  assert(!env.refunded, "refunded");
+  assert(blockTimeLt(env.expiry), "expired");
+  const amount = disclose(share.amount);
+  assert(amount > 0, "empty share");
+  assert(rootFromPath(leafHash(eid, share), path) == env.root, "invalid share");
+  const nf = disclose(nullifierOf(eid, share.secret));
+  assert(!nullifiers.member(nf), "already claimed");
+  nullifiers.insert(nf);
+  const to = disclose(recipient);
+  if (env.onePerAddress) {
+    const k = addrKey(eid, to);
+    assert(!addrClaims.member(k), "address already claimed");
+    addrClaims.insert(k);
+  }
+  sendUnshielded(nativeToken(), amount as Uint<128>, right<ContractAddress, UserAddress>(to));
+}
