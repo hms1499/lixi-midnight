@@ -39,6 +39,9 @@ export ledger envelopes: Map<Bytes<32>, Envelope>;
 export ledger nullifiers: Set<Field>;
 export ledger addrClaims: Set<Field>;
 
+// The sender's shares for envelope `id`, read from the sender's private state.
+witness envelopeShares(id: Bytes<32>): Vector<16, Share>;
+
 constructor(minDur: Uint<64>, maxDur: Uint<64>) {
   assert(minDur < maxDur, "bad durations");
   minDuration = disclose(minDur);
@@ -81,4 +84,31 @@ export pure circuit rootFromPath(leaf: Field, path: Vector<4, PathEntry>): Field
   return fold((acc: Field, e: PathEntry): Field =>
                 e.goesLeft ? nodeHash(e.sibling, acc) : nodeHash(acc, e.sibling),
               leaf, path);
+}
+
+// Lock `Σ amounts` of NIGHT behind a Merkle root of the sender's shares.
+export circuit createEnvelope(nonce: Bytes<32>,
+                              expiry: Uint<64>,
+                              refundAddress: UserAddress,
+                              onePerAddress: Boolean): Bytes<32> {
+  const id = disclose(envelopeId(nonce));
+  assert(!envelopes.member(id), "envelope exists");
+  const shares = envelopeShares(id);
+  const deposit = fold((acc: Uint<128>, s: Share): Uint<128> => (acc + s.amount) as Uint<128>,
+                       0 as Uint<128>, shares);
+  assert(deposit > 0, "empty envelope");
+  const exp = disclose(expiry);
+  assert(exp > maxDuration, "bad expiry");
+  assert(blockTimeLte((exp - minDuration) as Uint<64>), "expiry too soon");
+  assert(blockTimeGte((exp - maxDuration) as Uint<64>), "expiry too far");
+  receiveUnshielded(nativeToken(), disclose(deposit));
+  envelopes.insert(id, Envelope {
+    root: disclose(rootOf(id, shares)),
+    deposit: disclose(deposit),
+    expiry: exp,
+    refundAddress: disclose(refundAddress),
+    onePerAddress: disclose(onePerAddress),
+    refunded: false
+  });
+  return id;
 }
