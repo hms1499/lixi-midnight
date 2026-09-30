@@ -3,6 +3,7 @@
 **Design spec · 2026-09-30 · Status: approved in chat, pending written-spec review**
 
 Midnight Buildathon (AKINDO) entry. Wave 2 submission target: **2026-10-17** (hard deadline 2026-10-19 15:00 UTC).
+Repository: `github.com/hms1499/lixi-midnight` (public, Apache-2.0).
 
 ---
 
