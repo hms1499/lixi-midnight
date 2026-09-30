@@ -6,7 +6,14 @@ import { deriveEnvelope, linksFor, type EnvelopeSpec } from '../src/envelope.js'
 import { decodeLink, encodeLink } from '../src/link.js';
 import { recoverVault } from '../src/recovery.js';
 import {
-  addEnvelope, backupString, deserializeVault, newVault, nextIndex, privateStateOf, seedFromBackup, serializeVault,
+  addEnvelope,
+  backupString,
+  deserializeVault,
+  newVault,
+  nextIndex,
+  privateStateOf,
+  seedFromBackup,
+  serializeVault,
 } from '../src/vault.js';
 
 const HOUR = 3600;
@@ -96,7 +103,15 @@ describe('SDK ↔ contract flow', () => {
 
   it('serializes and restores the vault', () => {
     let vault = newVault();
-    vault = addEnvelope(vault, { index: 0, total: 5n, count: 2, kind: 'personal', split: 'random', expiry, labels: ['Mẹ', 'Bố'] });
+    vault = addEnvelope(vault, {
+      index: 0,
+      total: 5n,
+      count: 2,
+      kind: 'personal',
+      split: 'random',
+      expiry,
+      labels: ['Mẹ', 'Bố'],
+    });
     expect(deserializeVault(serializeVault(vault))).toEqual(vault);
     expect(() => seedFromBackup('nope')).toThrow(/not a Lixi backup/);
     expect(seedFromBackup(`\n  ${backupString(vault)}  \n`)).toEqual(vault.seed);

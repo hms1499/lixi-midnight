@@ -40,7 +40,9 @@ describe('claim', () => {
   });
 
   it('rejects a forged Merkle path', () => {
-    const path = buildTree(env.id, env.shares).pathFor(0).map((e) => ({ ...e, goesLeft: !e.goesLeft }));
+    const path = buildTree(env.id, env.shares)
+      .pathFor(0)
+      .map((e) => ({ ...e, goesLeft: !e.goesLeft }));
     expect(() => sim.claim(env.id, env.shares[0], path, rnd())).toThrow(/invalid share/);
   });
 

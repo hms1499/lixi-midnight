@@ -24,8 +24,11 @@ export class LixiSimulator {
   private state: ContractState | ChargedState;
 
   constructor(minDuration = 3600n, maxDuration = 30n * 86400n) {
-    this.state = this.contract.initialState(createConstructorContext(emptyPrivateState(), COIN_PK), minDuration, maxDuration)
-      .currentContractState;
+    this.state = this.contract.initialState(
+      createConstructorContext(emptyPrivateState(), COIN_PK),
+      minDuration,
+      maxDuration,
+    ).currentContractState;
   }
 
   ledger(): Ledger {

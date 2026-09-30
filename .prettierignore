@@ -1,0 +1,7 @@
+node_modules/
+contract/src/managed/
+docs/
+.superpowers/
+package-lock.json
+LICENSE
+*.md

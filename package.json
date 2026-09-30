@@ -4,17 +4,33 @@
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
-  "engines": { "node": ">=24" },
-  "workspaces": ["contract", "sdk"],
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "contract",
+    "sdk"
+  ],
   "scripts": {
     "compact": "npm run compact -w @lixi/contract",
     "compact:fast": "npm run compact:fast -w @lixi/contract",
     "pretypecheck": "npm run compact:fast",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "pretest": "npm run compact:fast",
-    "test": "npm test --workspaces --if-present"
+    "test": "npm test --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "overrides": {
     "source-map-js": "1.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.9",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.0"
   }
 }

@@ -5,7 +5,8 @@ import { MAX_SHARES } from '@lixi/contract';
 const MAX_SHARE_AMOUNT = (1n << 64n) - 1n;
 
 const check = (total: bigint, count: number): void => {
-  if (!Number.isInteger(count) || count < 1 || count > MAX_SHARES) throw new Error(`share count must be 1..${MAX_SHARES}`);
+  if (!Number.isInteger(count) || count < 1 || count > MAX_SHARES)
+    throw new Error(`share count must be 1..${MAX_SHARES}`);
   if (total < BigInt(count)) throw new Error('total must be at least one unit per share');
 };
 

@@ -7,8 +7,7 @@ import { DAY, EXPIRY, HOUR, makeShares, openEnvelope, rnd, type OpenEnvelope } f
 describe('refund', () => {
   let sim: LixiSimulator;
   let env: OpenEnvelope;
-  const claimShare = (i: number) =>
-    sim.claim(env.id, env.shares[i], buildTree(env.id, env.shares).pathFor(i), rnd());
+  const claimShare = (i: number) => sim.claim(env.id, env.shares[i], buildTree(env.id, env.shares).pathFor(i), rnd());
 
   beforeEach(() => {
     sim = new LixiSimulator(BigInt(HOUR), BigInt(30 * DAY));

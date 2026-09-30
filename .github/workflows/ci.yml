@@ -21,6 +21,8 @@ jobs:
       - run: compact update 0.31.1
       - run: compact compile --version
       - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - name: Full compile with proving keys
