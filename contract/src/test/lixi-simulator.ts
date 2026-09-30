@@ -46,6 +46,10 @@ export class LixiSimulator {
     this.run((ctx) => this.contract.impureCircuits.claim(ctx, id, share, path, { bytes: recipient }));
   }
 
+  refund(id: Uint8Array): void {
+    this.run((ctx) => this.contract.impureCircuits.refund(ctx, id));
+  }
+
   /** NIGHT sent to each user address by the last call, keyed by hex address. */
   lastPayouts(): Map<string, bigint> {
     const out = new Map<string, bigint>();

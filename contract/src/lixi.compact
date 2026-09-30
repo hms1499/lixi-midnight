@@ -134,3 +134,30 @@ export circuit claim(id: Bytes<32>, share: Share, path: Vector<4, PathEntry>, re
   }
   sendUnshielded(nativeToken(), amount as Uint<128>, right<ContractAddress, UserAddress>(to));
 }
+
+// After expiry, return every unclaimed share to the envelope's refund address.
+export circuit refund(id: Bytes<32>): [] {
+  const eid = disclose(id);
+  assert(envelopes.member(eid), "no envelope");
+  const env = envelopes.lookup(eid);
+  assert(!env.refunded, "refunded");
+  assert(blockTimeGte(env.expiry), "not expired");
+  const shares = envelopeShares(eid);
+  assert(rootOf(eid, shares) == env.root, "invalid shares");
+  const unclaimed = fold((acc: Uint<128>, s: Share): Uint<128> =>
+                           nullifiers.member(disclose(nullifierOf(eid, s.secret)))
+                             ? acc
+                             : (acc + disclose(s.amount)) as Uint<128>,
+                         0 as Uint<128>, shares);
+  envelopes.insert(eid, Envelope {
+    root: env.root,
+    deposit: env.deposit,
+    expiry: env.expiry,
+    refundAddress: env.refundAddress,
+    onePerAddress: env.onePerAddress,
+    refunded: true
+  });
+  if (unclaimed > 0) {
+    sendUnshielded(nativeToken(), unclaimed, right<ContractAddress, UserAddress>(env.refundAddress));
+  }
+}
