@@ -1,0 +1,9 @@
+node_modules/
+contract/src/managed/
+dist/
+coverage/
+.env
+.env.*
+*.log
+.DS_Store
+.claude/settings.local.json

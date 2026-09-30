@@ -1,0 +1,20 @@
+{
+  "name": "lixi-midnight",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": { "node": ">=24" },
+  "workspaces": ["contract", "sdk"],
+  "scripts": {
+    "compact": "npm run compact -w @lixi/contract",
+    "compact:fast": "npm run compact:fast -w @lixi/contract",
+    "pretypecheck": "npm run compact:fast",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "pretest": "npm run compact:fast",
+    "test": "npm test --workspaces --if-present"
+  },
+  "overrides": {
+    "source-map-js": "1.2.1"
+  }
+}
