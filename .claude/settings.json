@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r \".tool_input.file_path // .tool_response.filePath // empty\"); case \"$f\" in *.compact) out=$(cd \"$CLAUDE_PROJECT_DIR/contract\" && PATH=\"$HOME/.local/bin:$PATH\" compact compile --skip-zk src/lixi.compact src/managed/lixi 2>&1) || { printf \"Compact compile failed after editing %s:\n%s\n\" \"$f\" \"$out\" >&2; exit 2; };; esac",
+            "timeout": 60,
+            "statusMessage": "Compiling Compact contract…"
+          },
+          {
+            "type": "command",
+            "command": "f=$(jq -r \".tool_input.file_path // .tool_response.filePath // empty\"); case \"$f\" in *.ts|*.tsx|*.js|*.mjs|*.json) cd \"$CLAUDE_PROJECT_DIR\" && npx --no-install prettier --write --ignore-unknown \"$f\" >/dev/null 2>&1 || true;; esac",
+            "timeout": 30,
+            "statusMessage": "Formatting with Prettier…"
+          }
+        ]
+      }
+    ]
+  }
+}
