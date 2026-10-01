@@ -1,5 +1,5 @@
-/** How far one sub-wallet has synced. */
-export type SubProgress = { readonly percent: number; readonly complete: boolean };
+/** How far one sub-wallet has synced: a percentage, or the applied event count while the total is unknown. */
+export type SubProgress = { readonly percent?: number; readonly applied?: bigint; readonly complete: boolean };
 export type WalletSyncProgress = {
   readonly unshielded: SubProgress;
   readonly dust: SubProgress;
@@ -16,10 +16,13 @@ export type SyncView = {
   readonly shielded: { readonly state: { readonly progress: Indexed } };
 };
 
-const sub = (applied: bigint, highest: bigint, complete: boolean): SubProgress => ({
-  percent: highest > 0n ? Number((applied * 1000n) / highest) / 10 : 100,
-  complete,
-});
+const sub = (applied: bigint, highest: bigint, complete: boolean): SubProgress => {
+  if (highest > 0n) return { percent: Number((applied * 1000n) / highest) / 10, complete };
+  // An empty chain is done; otherwise the indexer has not reported its tip yet.
+  return complete || applied === 0n ? { percent: 100, complete } : { percent: undefined, applied, complete };
+};
+
+const show = (p: SubProgress): string => (p.percent === undefined ? `${p.applied} events` : `${p.percent}%`);
 
 export const syncProgress = (s: SyncView): WalletSyncProgress => {
   const u = s.unshielded.progress;
@@ -33,7 +36,7 @@ export const syncProgress = (s: SyncView): WalletSyncProgress => {
 };
 
 export const describeSync = (p: WalletSyncProgress): string =>
-  `unshielded ${p.unshielded.percent}% · DUST ${p.dust.percent}% · shielded ${p.shielded.percent}% (not needed)`;
+  `unshielded ${show(p.unshielded)} · DUST ${show(p.dust)} · shielded ${show(p.shielded)} (not needed)`;
 
 /**
  * Lixi only moves unshielded NIGHT and pays fees in DUST, so a wallet is ready once those two

@@ -17,8 +17,7 @@ import {
   type PersonalLink,
 } from '@lixi/sdk';
 import { nodeProviders } from './providers.js';
-import { deployerSeed } from './secret.js';
-import { HeadlessWallet } from './wallet.js';
+import { startDeployer } from './deployer.js';
 
 /**
  * Smoke test against a deployed contract: create a two-share envelope, then claim both shares back
@@ -32,7 +31,7 @@ const { contractAddress } = JSON.parse(
 ) as { contractAddress: string };
 
 setNetworkId(config.networkId);
-const wallet = await HeadlessWallet.start(config, deployerSeed(network));
+const wallet = await startDeployer(network);
 try {
   const providers = nodeProviders(config, wallet);
   const me = await wallet.userAddress();

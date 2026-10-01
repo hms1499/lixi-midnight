@@ -29,20 +29,32 @@ import type { NetworkConfig } from '@lixi/sdk';
 import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
 import { describeSync, feeSyncReady, syncProgress } from './sync.js';
+import { readWalletCache, writeWalletCache } from './wallet-cache.js';
 
 // The wallet SDK's indexer client needs a global WebSocket in Node.
 globalThis.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket;
 
 /** A headless wallet for scripts and tests. Never log `seed`. */
 export class HeadlessWallet implements WalletProvider, MidnightProvider {
+  private saveTimer: ReturnType<typeof setInterval> | undefined;
+
   private constructor(
     readonly facade: WalletFacade,
     private readonly shieldedSecretKeys: ZswapSecretKeys,
     private readonly dustSecretKey: DustSecretKey,
     readonly keystore: UnshieldedKeystore,
+    private readonly cacheFile: string | undefined,
   ) {}
 
-  static async start(config: NetworkConfig, seedHex: string): Promise<HeadlessWallet> {
+  /**
+   * Starts and syncs a wallet. With `cacheFile`, sync state is restored from it, saved every minute
+   * and on `stop()`, so a later run only syncs what is new (a fresh Preprod sync takes hours).
+   */
+  static async start(
+    config: NetworkConfig,
+    seedHex: string,
+    cacheFile?: string | ((bech32Address: string) => string),
+  ): Promise<HeadlessWallet> {
     const hd = HDWallet.fromSeed(Buffer.from(seedHex, 'hex'));
     if (hd.type !== 'seedOk') throw new Error('invalid wallet seed');
     const derived = hd.hdWallet
@@ -56,6 +68,8 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
     const shieldedSecretKeys = ZswapSecretKeys.fromSeed(keys[Roles.Zswap]);
     const dustSecretKey = DustSecretKey.fromSeed(keys[Roles.Dust]);
     const keystore = createKeystore(keys[Roles.NightExternal], config.networkId);
+    const file = typeof cacheFile === 'function' ? cacheFile(keystore.getBech32Address().asString()) : cacheFile;
+    const cached = file ? readWalletCache(file) : undefined;
     const indexerClientConnection = { indexerHttpUrl: config.indexer, indexerWsUrl: config.indexerWS };
     const facade = await WalletFacade.init({
       configuration: {
@@ -66,12 +80,34 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
         txHistoryStorage: new NoOpTransactionHistoryStorage(),
         costParameters: { additionalFeeOverhead: 1_000n, feeBlocksMargin: 5 },
       },
-      shielded: (cfg) => ShieldedWallet(cfg).startWithSecretKeys(shieldedSecretKeys),
-      unshielded: (cfg) => UnshieldedWallet(cfg).startWithPublicKey(PublicKey.fromKeyStore(keystore)),
-      dust: (cfg) => DustWallet(cfg).startWithSecretKey(dustSecretKey, LedgerParameters.initialParameters().dust),
+      shielded: (cfg) =>
+        cached
+          ? ShieldedWallet(cfg).restore(cached.shielded)
+          : ShieldedWallet(cfg).startWithSecretKeys(shieldedSecretKeys),
+      unshielded: (cfg) =>
+        cached
+          ? UnshieldedWallet(cfg).restore(cached.unshielded)
+          : UnshieldedWallet(cfg).startWithPublicKey(PublicKey.fromKeyStore(keystore)),
+      dust: (cfg) =>
+        cached
+          ? DustWallet(cfg).restore(cached.dust)
+          : DustWallet(cfg).startWithSecretKey(dustSecretKey, LedgerParameters.initialParameters().dust),
     });
     await facade.start(shieldedSecretKeys, dustSecretKey);
-    return new HeadlessWallet(facade, shieldedSecretKeys, dustSecretKey, keystore);
+    const wallet = new HeadlessWallet(facade, shieldedSecretKeys, dustSecretKey, keystore, file);
+    if (file) wallet.saveTimer = setInterval(() => void wallet.saveState().catch(() => undefined), 60_000);
+    return wallet;
+  }
+
+  /** Writes the current sync state to the cache file, if this wallet has one. */
+  async saveState(): Promise<void> {
+    if (!this.cacheFile) return;
+    const [shielded, unshielded, dust] = await Promise.all([
+      this.facade.shielded.serializeState(),
+      this.facade.unshielded.serializeState(),
+      this.facade.dust.serializeState(),
+    ]);
+    writeWalletCache(this.cacheFile, { shielded, unshielded, dust });
   }
 
   /** Unshielded address as the 32 bytes the contract's `UserAddress` expects. */
@@ -205,8 +241,10 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
     );
   }
 
-  stop(): Promise<void> {
-    return this.facade.stop();
+  async stop(): Promise<void> {
+    clearInterval(this.saveTimer);
+    await this.saveState().catch(() => undefined);
+    await this.facade.stop();
   }
 
   private secretKeys() {

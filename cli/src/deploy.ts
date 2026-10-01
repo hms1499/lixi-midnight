@@ -4,8 +4,7 @@ import { parseArgs } from 'node:util';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { NETWORKS, deployLixi, readLedger, relinquishAuthority, type NetworkName } from '@lixi/sdk';
 import { nodeProviders } from './providers.js';
-import { deployerSeed } from './secret.js';
-import { HeadlessWallet } from './wallet.js';
+import { startDeployer } from './deployer.js';
 
 const DAY = 86400n;
 /** Spec §3.4: minDuration 60 s on the devnet, 3600 s on Preprod; maxDuration 30 days. */
@@ -21,7 +20,7 @@ if (!(network in NETWORKS)) throw new Error(`unknown network ${network}; use und
 const config = NETWORKS[network];
 
 setNetworkId(config.networkId);
-const wallet = await HeadlessWallet.start(config, deployerSeed(network));
+const wallet = await startDeployer(network);
 try {
   console.log(`deployer address: ${wallet.bech32Address()}`);
   console.log('syncing wallet (a fresh Preprod wallet can take several minutes)...');

@@ -1,3 +1,6 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { submitRemoveVerifierKeyTx } from '@midnight-ntwrk/midnight-js-contracts';
@@ -25,6 +28,7 @@ import {
 } from '@lixi/sdk';
 import { nodeProviders } from '../src/providers.js';
 import { HeadlessWallet } from '../src/wallet.js';
+import { readWalletCache } from '../src/wallet-cache.js';
 import {
   GENESIS_SEED,
   fundedWallet,
@@ -146,5 +150,18 @@ describe.sequential('Lixi on the local devnet', () => {
     expect(ledger.envelopes.lookup(envelope.id).refunded).toBe(true);
     // Deposit 4, three claims paid out 3, so the refund returns the 1 unclaimed share.
     await waitForNight(sender, senderNightBeforeCreate - 3n * NIGHT);
+  });
+
+  it('restores a synced wallet from its cache file, so a later run skips the full sync', async () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'lixi-cache-')), 'genesis.json');
+    const first = await HeadlessWallet.start(config, GENESIS_SEED, file);
+    const balance = await first.nightBalance();
+    await first.stop();
+    expect(readWalletCache(file)).toBeDefined();
+
+    const restored = await HeadlessWallet.start(config, GENESIS_SEED, file);
+    expect(await restored.nightBalance()).toBe(balance);
+    expect(restored.bech32Address()).toBe(first.bech32Address());
+    await restored.stop();
   });
 });

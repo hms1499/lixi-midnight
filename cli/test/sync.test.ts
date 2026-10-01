@@ -32,6 +32,16 @@ describe('wallet sync progress', () => {
     expect(syncProgress(state([0n, 0n], [0n, 0n], [0n, 0n])).dust).toEqual({ percent: 100, complete: true });
   });
 
+  it('reports applied events, not a fake 100%, while the total is still unknown', () => {
+    const unknownTotal = {
+      ...state([5n, 5n], [0n, 0n], [0n, 0n]),
+      dust: { state: { progress: { appliedIndex: 22943n, highestIndex: 0n, isStrictlyComplete: () => false } } },
+    };
+    const p = syncProgress(unknownTotal);
+    expect(p.dust).toEqual({ percent: undefined, applied: 22943n, complete: false });
+    expect(describeSync(p)).toBe('unshielded 100% · DUST 22943 events · shielded 100% (not needed)');
+  });
+
   it('is ready to pay fees once unshielded and DUST are synced, whatever shielded says', () => {
     expect(feeSyncReady(state([5n, 5n], [7n, 7n], [1n, 900n]))).toBe(true);
     expect(feeSyncReady(state([5n, 5n], [6n, 7n], [900n, 900n]))).toBe(false);
