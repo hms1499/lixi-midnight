@@ -8,7 +8,7 @@ import {
   type PathEntry,
   type Share,
 } from '@lixi/contract';
-import { deployContract, submitCallTx, submitTx } from '@midnight-ntwrk/midnight-js-contracts';
+import { createUnprovenCallTx, deployContract, submitCallTx, submitTx } from '@midnight-ntwrk/midnight-js-contracts';
 import { getNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-js';
 import {
@@ -142,4 +142,17 @@ export const refundTx = async (
     args: [id],
   });
   return tx.public.txId;
+};
+
+/**
+ * Builds and proves a `claim` without balancing or submitting it. A wallet with no DUST can
+ * then balance its own side and hand the bound transaction to a fee sponsor.
+ */
+export const proveClaimTx = async (providers: LixiProviders, address: string, args: ClaimTxArgs) => {
+  const unproven = await createUnprovenCallTx(providers, {
+    ...(await callOptions(providers, address, emptyPrivateState())),
+    circuitId: 'claim',
+    args: [args.id, args.share, args.path, { bytes: args.recipient }],
+  });
+  return providers.proofProvider.proveTx(unproven.private.unprovenTx);
 };

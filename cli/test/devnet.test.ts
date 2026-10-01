@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { submitRemoveVerifierKeyTx } from '@midnight-ntwrk/midnight-js-contracts';
+import { toHex } from '@midnight-ntwrk/midnight-js-utils';
+import { pureCircuits } from '@lixi/contract';
 import {
   NETWORKS,
   addEnvelope,
@@ -14,6 +16,7 @@ import {
   lixiContract,
   newVault,
   privateStateOf,
+  proveClaimTx,
   readLedger,
   refundTx,
   relinquishAuthority,
@@ -119,6 +122,20 @@ describe.sequential('Lixi on the local devnet', () => {
     });
   });
 
+  it('lets a sponsor pay the fee for a recipient with no NIGHT and no DUST (S5)', async () => {
+    const pc = timeProofs(nodeProviders(config, carol), 'carol');
+    const recipient = await carol.userAddress();
+    expect((await carol.facade.waitForSyncedState()).dust.balance(new Date())).toBe(0n);
+
+    const proven = await proveClaimTx(pc, address, { ...links[2], recipient });
+    const bound = await carol.balanceWithoutFees(proven); // recipient side: no DUST touched
+    const txId = await sender.sponsor(toHex(bound.serialize())); // sponsor side, across a hex boundary
+    await ps.publicDataProvider.watchForTxData(txId);
+    await waitForNight(carol, NIGHT);
+    const ledger = await readLedger(ps.publicDataProvider, address);
+    expect(ledger.nullifiers.member(pureCircuits.nullifierOf(envelope.id, links[2].share.secret))).toBe(true);
+  });
+
   it('refunds exactly the unclaimed remainder after expiry', async () => {
     const early = await readLedger(ps.publicDataProvider, address);
     expect(checkRefund(early, envelope.id, nowSeconds())).toEqual({ ok: false, reason: 'not expired' });
@@ -127,7 +144,7 @@ describe.sequential('Lixi on the local devnet', () => {
     await refundTx(ps, address, privateStateOf(vault), envelope.id);
     const ledger = await readLedger(ps.publicDataProvider, address);
     expect(ledger.envelopes.lookup(envelope.id).refunded).toBe(true);
-    // Deposit 4, two claims paid out 2, so the refund returns the 2 unclaimed shares.
-    await waitForNight(sender, senderNightBeforeCreate - 2n * NIGHT);
+    // Deposit 4, three claims paid out 3, so the refund returns the 1 unclaimed share.
+    await waitForNight(sender, senderNightBeforeCreate - 3n * NIGHT);
   });
 });

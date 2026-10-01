@@ -2,12 +2,16 @@ import { Buffer } from 'node:buffer';
 import {
   DustSecretKey,
   LedgerParameters,
+  Transaction,
+  type Binding,
+  type Proof,
+  type SignatureEnabled,
   ZswapSecretKeys,
   nativeToken,
   type FinalizedTransaction,
 } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import type { MidnightProvider, UnboundTransaction, WalletProvider } from '@midnight-ntwrk/midnight-js-types';
-import { ttlOneHour } from '@midnight-ntwrk/midnight-js-utils';
+import { fromHex, ttlOneHour } from '@midnight-ntwrk/midnight-js-utils';
 import {
   DustWallet,
   HDWallet,
@@ -99,6 +103,40 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
 
   submitTx(tx: FinalizedTransaction): Promise<string> {
     return this.facade.submitTransaction(tx);
+  }
+
+  /** Fee sponsorship, user side: balance only shielded/unshielded value (no DUST), sign and bind. */
+  async balanceWithoutFees(tx: UnboundTransaction, ttl: Date = ttlOneHour()): Promise<FinalizedTransaction> {
+    const recipe = await this.facade.balanceUnboundTransaction(tx, this.secretKeys(), {
+      ttl,
+      tokenKindsToBalance: ['shielded', 'unshielded'],
+    });
+    const signed = await this.facade.signRecipe(recipe, (payload) => this.keystore.signData(payload));
+    return this.facade.finalizeRecipe(signed);
+  }
+
+  /** Fee sponsorship, sponsor side: add a DUST fee offer to someone else's bound transaction. */
+  async addDustFee(tx: FinalizedTransaction, ttl: Date = ttlOneHour()): Promise<FinalizedTransaction> {
+    const recipe = await this.facade.balanceFinalizedTransaction(tx, this.secretKeys(), {
+      ttl,
+      tokenKindsToBalance: ['dust'],
+    });
+    const signed = await this.facade.signRecipe(recipe, (payload) => this.keystore.signData(payload));
+    return this.facade.finalizeRecipe(signed);
+  }
+
+  /**
+   * Fee sponsorship, sponsor side, across the network boundary: takes the hex of a transaction
+   * the recipient already proved, balanced and bound, pays its DUST fee and submits it.
+   */
+  async sponsor(boundTxHex: string): Promise<string> {
+    const tx: FinalizedTransaction = Transaction.deserialize<SignatureEnabled, Proof, Binding>(
+      'signature',
+      'proof',
+      'binding',
+      fromHex(boundTxHex.trim()),
+    );
+    return this.submitTx(await this.addDustFee(tx));
   }
 
   /** Sends unshielded NIGHT to another wallet and returns the transaction id. */
