@@ -6,3 +6,6 @@ export * from './link.js';
 export * from './claim.js';
 export * from './vault.js';
 export * from './recovery.js';
+export * from './network.js';
+export * from './address.js';
+export * from './memory-private-state.js';
