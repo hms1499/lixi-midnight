@@ -29,6 +29,25 @@ const log = (line: string) => {
 const deserialize = (hex: string): FinalizedTransaction =>
   Transaction.deserialize('signature', 'proof', 'binding', fromHex(hex));
 
+/** Logs each method call on a wallet object, so an opaque wallet error names the call that failed. */
+const traced = <T extends object>(target: T, name: string): T =>
+  new Proxy(target, {
+    get(obj, prop) {
+      const value: unknown = Reflect.get(obj, prop);
+      if (typeof value !== 'function') return value;
+      return async (...args: unknown[]) => {
+        const label = `${name}.${String(prop)}`;
+        log(`→ ${label}`);
+        try {
+          return await (value as (...a: unknown[]) => unknown).apply(obj, args);
+        } catch (e) {
+          log(`✗ ${label}: ${String(e)}`);
+          throw e;
+        }
+      };
+    },
+  });
+
 let api: ConnectedAPI | undefined;
 
 const wallets = (): InitialAPI[] => Object.values(window.midnight ?? {});
@@ -44,7 +63,14 @@ $('detect').onclick = () => {
 $('connect').onclick = async () => {
   const network = $<HTMLSelectElement>('network').value;
   setNetworkId(network);
-  api = await wallets()[Number($<HTMLSelectElement>('wallet').value)].connect(network);
+  const chosen = wallets()[Number($<HTMLSelectElement>('wallet').value)];
+  log(`→ ${chosen.name} (api ${chosen.apiVersion}).connect('${network}')`);
+  const waiting = setInterval(() => log(`  still waiting for ${chosen.name} to answer connect...`), 15_000);
+  try {
+    api = traced(await chosen.connect(network), 'wallet');
+  } finally {
+    clearInterval(waiting);
+  }
   const config = await api.getConfiguration();
   log(`connected: indexer ${config.indexerUri}, prover ${config.proverServerUri ?? '(none)'}`);
   log(`unshielded ${(await api.getUnshieldedAddress()).unshieldedAddress}`);
@@ -74,7 +100,7 @@ $('claim').onclick = async () => {
     zkConfigProvider: zk,
     proofProvider:
       proving === 'wallet'
-        ? createProofProvider(await connected.getProvingProvider(zk))
+        ? createProofProvider(traced(await connected.getProvingProvider(zk), 'walletProver'))
         : httpClientProofProvider('http://127.0.0.1:6300', zk),
     walletProvider: {
       getCoinPublicKey: () => shielded.shieldedCoinPublicKey,
@@ -91,6 +117,7 @@ $('claim').onclick = async () => {
   };
 
   const recipient = userAddressBytes((await api.getUnshieldedAddress()).unshieldedAddress, network);
+  log(`→ indexer readLedger (${config.indexerUri.split('?')[0]})`);
   const ledger = await readLedger(providers.publicDataProvider, address);
   const args = resolveClaim(parseClaimInput($<HTMLInputElement>('link').value), (nf) => ledger.nullifiers.member(nf));
   const check = checkClaim(ledger, args, recipient, Math.floor(Date.now() / 1000));
@@ -103,8 +130,9 @@ $('claim').onclick = async () => {
   t = performance.now();
   const balanced = await providers.walletProvider.balanceTx(proven);
   log(`wallet balanced (payFees=${payFees}) in ${((performance.now() - t) / 1000).toFixed(1)}s`);
+  // Shown in both modes: with payFees it lets a stuck submission be resubmitted to the node to read its verdict.
+  $<HTMLTextAreaElement>('txhex').value = toHex(balanced.serialize());
   if (!payFees) {
-    $<HTMLTextAreaElement>('txhex').value = toHex(balanced.serialize());
     return log('copy the hex into a file and run: npm run sponsor -w @lixi/cli -- --network <net> <file>');
   }
   log(`submitted: ${await providers.midnightProvider.submitTx(balanced)}`);
