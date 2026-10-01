@@ -22,8 +22,13 @@ Lixi: private red envelopes on Midnight (Midnight Buildathon entry).
 - `npm run lint` (ESLint + typescript-eslint) and `npm run format:check` (Prettier: single quotes, trailing commas, width 120) both run in CI. Project hooks auto-format edited TS/JSON files and compile edited `.compact` files; a Compact compile error blocks until fixed.
 - `contract/src/managed/` is generated and gitignored. Never edit it.
 - Local proof server: Docker container `midnight-proof-server` on port 6300 (`docker start midnight-proof-server`, then `curl localhost:6300/health`).
+- Devnet: `docker compose -f devnet/compose.yml up -d --wait`. Stop `midnight-proof-server` first, because it also wants port 6300. For Preprod, start only `proof-server` from the same file.
+- Chain scripts: `npm run test:devnet -w @lixi/cli`, or `deploy`/`smoke`/`sponsor` with `-- --network <undeployed|preprod>`. They recompile the proving keys first, because `npm test` deletes them. The Preprod deployer secret lives in gitignored `cli/.env`, as `LIXI_DEPLOYER_MNEMONIC` (recovery phrase) or `LIXI_DEPLOYER_SEED` (64 hex). The first Preprod run syncs ~1.6M DUST events (~35 min with `batchUpdates: { size: 2000 }`; the SDK default of 10 takes hours). Sync state is cached in gitignored `cli/.wallet-cache/` (owner-only), so later runs are fast. Never commit or share that folder.
 
 ## Invariants (don't break)
+- `npm ls @midnight-ntwrk/onchain-runtime-v3` must show one version (3.0.0, root `overrides`). Two copies break every circuit call with `expected instance of StateValue`. After installing, run `npm dedupe`.
+- Every deployment relinquishes its maintenance authority (`relinquishAuthority`, an empty committee). Proving is always local (`NETWORKS[*].proofServer`).
+- Use `memoryPrivateStateProvider`. The vault is the source of truth for shares.
 - Packages export TypeScript sources directly (`exports` → `./src/*.ts`); there is no build step. `@lixi/contract/testing` exports the simulator.
 - `MAX_SHARES = 16` and `TREE_DEPTH = 4` in `contract/src/constants.ts` must match `Vector<16, Share>` and `Vector<4, PathEntry>` in `lixi.compact`.
 - Hashing is a deliberate choice (spec §3.2):
@@ -35,6 +40,7 @@ Lixi: private red envelopes on Midnight (Midnight Buildathon entry).
 - Secrets (the seed and share secrets) never appear in logs or error messages. Link secrets live only in the URL fragment.
 
 ## Testing quirks
+- Devnet tests use the public genesis seed `00…01` and fresh random wallets. A `submission rejected, retrying` warning is expected now and then.
 - Tests run the real compiled contract through `LixiSimulator`. Each call builds a fresh context, so effects are per call.
 - `sim.ledger()` returns a snapshot. Take it after the calls you want to observe; a stale snapshot throws `expected a cell, received null`.
 - To control block time, set `sim.now` (unix seconds) before a call.
