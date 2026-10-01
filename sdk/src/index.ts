@@ -9,3 +9,4 @@ export * from './recovery.js';
 export * from './network.js';
 export * from './address.js';
 export * from './memory-private-state.js';
+export * from './precheck.js';
