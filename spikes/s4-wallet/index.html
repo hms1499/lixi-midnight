@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lixi spike S4: browser wallet claim</title>
+    <style>
+      body {
+        font:
+          14px system-ui,
+          sans-serif;
+        max-width: 760px;
+        margin: 2rem auto;
+        padding: 0 16px;
+      }
+      input,
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      pre {
+        background: #111;
+        color: #9f9;
+        padding: 12px;
+        white-space: pre-wrap;
+        min-height: 8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Spike S4: claim with a browser wallet</h1>
+    <p>
+      <select id="network">
+        <option>preprod</option>
+        <option>undeployed</option>
+      </select>
+      <button id="detect">Detect wallets</button>
+      <select id="wallet"></select>
+      <button id="connect">Connect</button>
+    </p>
+    <p>
+      <label>Contract address <input id="contract" /></label>
+    </p>
+    <p>
+      <label>Claim link <input id="link" /></label>
+    </p>
+    <p>
+      Prover
+      <select id="proving">
+        <option value="wallet">wallet (getProvingProvider)</option>
+        <option value="local">local proof server :6300</option>
+      </select>
+      Fees
+      <select id="fees">
+        <option value="wallet">wallet pays</option>
+        <option value="sponsor">sponsor pays (payFees: false)</option>
+      </select>
+      <button id="claim">Claim</button>
+    </p>
+    <p>
+      <label>Bound transaction for the sponsor <textarea id="txhex" rows="3" readonly></textarea></label>
+    </p>
+    <pre id="log"></pre>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

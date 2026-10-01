@@ -2011,7 +2011,7 @@ window.addEventListener('unhandledrejection', (e) => log(`error: ${String(e.reas
 
 - [ ] **Step 2: Build it**
 
-Run: `npm run compact && npm run typecheck && npm run lint && npm run build -w @lixi/s4-wallet-spike`
+Run: `npm run typecheck && npm run lint && npm run compact && npm run build -w @lixi/s4-wallet-spike`. Keep this order: `typecheck` recompiles with `--skip-zk`, which deletes the keys that the build copies.
 Expected:
 - `✓ built`. Two warnings are harmless and expected: a chunk-size warning, and `IMPORT_IS_UNDEFINED … isomorphic-ws` (the page passes the browser `WebSocket` explicitly).
 - `spikes/s4-wallet/dist/keys/claim.prover` exists.

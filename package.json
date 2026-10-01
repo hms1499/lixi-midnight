@@ -10,7 +10,8 @@
   "workspaces": [
     "contract",
     "sdk",
-    "cli"
+    "cli",
+    "spikes/s4-wallet"
   ],
   "scripts": {
     "compact": "npm run compact -w @lixi/contract",
