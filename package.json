@@ -9,7 +9,8 @@
   },
   "workspaces": [
     "contract",
-    "sdk"
+    "sdk",
+    "cli"
   ],
   "scripts": {
     "compact": "npm run compact -w @lixi/contract",
