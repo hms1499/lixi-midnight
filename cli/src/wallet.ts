@@ -79,6 +79,9 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
         relayURL: new URL(config.node.replace(/^http/, 'ws')),
         txHistoryStorage: new NoOpTransactionHistoryStorage(),
         costParameters: { additionalFeeOverhead: 1_000n, feeBlocksMargin: 5 },
+        // The SDK applies sync events 10 at a time by default; a fresh Preprod wallet replays ~1.6M
+        // DUST events, so bigger batches cut the first sync from hours to tens of minutes.
+        batchUpdates: { size: 2000 },
       },
       shielded: (cfg) =>
         cached
