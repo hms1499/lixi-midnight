@@ -1,0 +1,7 @@
+{
+  "network": "preprod",
+  "contractAddress": "971f70aeb5c33bcafde88471431d7e0fc3b5e1a75fc31ce9d3bc0d90499d1f61",
+  "minDuration": 3600,
+  "maxDuration": 2592000,
+  "deployedAt": "2026-10-01T13:56:26.869Z"
+}
