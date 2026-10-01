@@ -23,7 +23,8 @@
     "format:check": "prettier --check ."
   },
   "overrides": {
-    "source-map-js": "1.2.1"
+    "source-map-js": "1.2.1",
+    "@midnight-ntwrk/onchain-runtime-v3": "3.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
