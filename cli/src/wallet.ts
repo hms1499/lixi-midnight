@@ -28,6 +28,7 @@ import {
 import type { NetworkConfig } from '@lixi/sdk';
 import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
+import { describeSync, feeSyncReady, syncProgress } from './sync.js';
 
 // The wallet SDK's indexer client needs a global WebSocket in Node.
 globalThis.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket;
@@ -83,8 +84,22 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
   }
 
   async nightBalance(): Promise<bigint> {
-    const state = await this.facade.waitForSyncedState();
+    const state = await this.waitForFeeSync();
     return state.unshielded.balances[nativeToken().raw] ?? 0n;
+  }
+
+  /**
+   * Waits until the unshielded and DUST sub-wallets have synced, which is all Lixi needs, and logs
+   * progress every 30 s. Shielded sync is not awaited: on Preprod it replays the whole chain history.
+   */
+  waitForFeeSync(timeoutMs = 60 * 60_000, log: (line: string) => void = console.log): Promise<FacadeState> {
+    const progress = this.facade
+      .state()
+      .pipe(Rx.throttleTime(30_000))
+      .subscribe((s) => {
+        if (!feeSyncReady(s)) log(`sync: ${describeSync(syncProgress(s))}`);
+      });
+    return this.waitFor(feeSyncReady, timeoutMs, 'unshielded and DUST sync').finally(() => progress.unsubscribe());
   }
 
   getCoinPublicKey() {
@@ -96,7 +111,11 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
   }
 
   async balanceTx(tx: UnboundTransaction, ttl: Date = ttlOneHour()): Promise<FinalizedTransaction> {
-    const recipe = await this.facade.balanceUnboundTransaction(tx, this.secretKeys(), { ttl });
+    // Lixi never moves shielded tokens, so balancing never needs the (slow) shielded sync.
+    const recipe = await this.facade.balanceUnboundTransaction(tx, this.secretKeys(), {
+      ttl,
+      tokenKindsToBalance: ['unshielded', 'dust'],
+    });
     const signed = await this.facade.signRecipe(recipe, (payload) => this.keystore.signData(payload));
     return this.facade.finalizeRecipe(signed);
   }
@@ -105,11 +124,11 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
     return this.facade.submitTransaction(tx);
   }
 
-  /** Fee sponsorship, user side: balance only shielded/unshielded value (no DUST), sign and bind. */
+  /** Fee sponsorship, user side: balance only unshielded value (no DUST), sign and bind. */
   async balanceWithoutFees(tx: UnboundTransaction, ttl: Date = ttlOneHour()): Promise<FinalizedTransaction> {
     const recipe = await this.facade.balanceUnboundTransaction(tx, this.secretKeys(), {
       ttl,
-      tokenKindsToBalance: ['shielded', 'unshielded'],
+      tokenKindsToBalance: ['unshielded'],
     });
     const signed = await this.facade.signRecipe(recipe, (payload) => this.keystore.signData(payload));
     return this.facade.finalizeRecipe(signed);
@@ -157,9 +176,12 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
 
   /** Registers every unregistered NIGHT UTXO for DUST generation, then waits for a spendable DUST coin. */
   async registerForDust(timeoutMs = 180_000): Promise<void> {
-    const state = await this.facade.waitForSyncedState();
+    const state = await this.waitForFeeSync();
     const unregistered = state.unshielded.availableCoins.filter((c) => !c.meta.registeredForDustGeneration);
     if (unregistered.length > 0) {
+      // The registration pays its own fee from DUST its NIGHT has generated, so wait for enough.
+      const { fee } = await this.facade.estimateRegistration(unregistered);
+      await this.facade.waitForGeneratedDust(unregistered, fee, { timeoutMs });
       const recipe = await this.facade.registerNightUtxosForDustGeneration(
         unregistered,
         this.keystore.getPublicKey(),

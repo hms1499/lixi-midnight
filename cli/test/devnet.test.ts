@@ -54,8 +54,8 @@ describe.sequential('Lixi on the local devnet', () => {
     setNetworkId('undeployed');
     sender = await HeadlessWallet.start(config, GENESIS_SEED);
     await sender.registerForDust();
-    alice = await fundedWallet(config, sender, 10n * NIGHT, true);
-    bob = await fundedWallet(config, sender, 10n * NIGHT, true);
+    alice = await fundedWallet(config, sender, 1000n * NIGHT, true);
+    bob = await fundedWallet(config, sender, 1000n * NIGHT, true);
     carol = await HeadlessWallet.start(config, randomSeed());
     ps = timeProofs(nodeProviders(config, sender), 'sender');
   });
@@ -125,7 +125,7 @@ describe.sequential('Lixi on the local devnet', () => {
   it('lets a sponsor pay the fee for a recipient with no NIGHT and no DUST (S5)', async () => {
     const pc = timeProofs(nodeProviders(config, carol), 'carol');
     const recipient = await carol.userAddress();
-    expect((await carol.facade.waitForSyncedState()).dust.balance(new Date())).toBe(0n);
+    expect((await carol.waitForFeeSync()).dust.balance(new Date())).toBe(0n);
 
     const proven = await proveClaimTx(pc, address, { ...links[2], recipient });
     const bound = await carol.balanceWithoutFees(proven); // recipient side: no DUST touched

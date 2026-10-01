@@ -34,8 +34,9 @@ describe('deployerSeed', () => {
     expect(deployerSeed('preprod', { LIXI_DEPLOYER_SEED: HEX })).toBe(HEX);
   });
 
-  it('falls back to the public genesis seed only on the devnet', () => {
+  it('always uses the public genesis seed on the devnet, even when a Preprod secret is set', () => {
     expect(deployerSeed('undeployed', {})).toBe(GENESIS_SEED);
+    expect(deployerSeed('undeployed', { LIXI_DEPLOYER_MNEMONIC: PHRASE, LIXI_DEPLOYER_SEED: HEX })).toBe(GENESIS_SEED);
     expect(() => deployerSeed('preprod', {})).toThrow(/LIXI_DEPLOYER_MNEMONIC/);
   });
 });

@@ -18,10 +18,13 @@ export const walletSeed = (secret: string): string => {
   return Buffer.from(mnemonicToSeedSync(phrase)).toString('hex');
 };
 
-/** The deployer's seed: `LIXI_DEPLOYER_MNEMONIC`, else `LIXI_DEPLOYER_SEED`, else the genesis seed on the devnet. */
+/**
+ * The deployer's seed. The devnet always uses the funded genesis wallet; other networks read
+ * `LIXI_DEPLOYER_MNEMONIC`, else `LIXI_DEPLOYER_SEED`.
+ */
 export const deployerSeed = (network: NetworkName, env: Record<string, string | undefined> = process.env): string => {
+  if (network === 'undeployed') return GENESIS_SEED;
   const secret = env.LIXI_DEPLOYER_MNEMONIC ?? env.LIXI_DEPLOYER_SEED;
   if (secret) return walletSeed(secret);
-  if (network === 'undeployed') return GENESIS_SEED;
   throw new Error('set LIXI_DEPLOYER_MNEMONIC (recovery phrase) or LIXI_DEPLOYER_SEED (64 hex) in cli/.env');
 };
