@@ -6,6 +6,11 @@
   "license": "Apache-2.0",
   "scripts": {
     "keys": "npm run compact -w @lixi/contract",
+    "predeploy": "npm run keys",
+    "deploy": "tsx --env-file-if-exists=.env src/deploy.ts",
+    "presmoke": "npm run keys",
+    "smoke": "tsx --env-file-if-exists=.env src/smoke.ts",
+    "sponsor": "tsx --env-file-if-exists=.env src/sponsor.ts",
     "pretest:devnet": "npm run keys",
     "test:devnet": "vitest run",
     "typecheck": "tsc --noEmit"
