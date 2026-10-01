@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { NETWORKS, type NetworkName } from '@lixi/sdk';
+import { deployerSeed } from './secret.js';
 import { HeadlessWallet } from './wallet.js';
 
 /**
@@ -14,12 +15,10 @@ const { values, positionals } = parseArgs({
 });
 const network = values.network as NetworkName;
 const config = NETWORKS[network];
-const seed = process.env.LIXI_DEPLOYER_SEED ?? (network === 'undeployed' ? '0'.repeat(63) + '1' : undefined);
-if (!seed) throw new Error('set LIXI_DEPLOYER_SEED');
 if (positionals.length !== 1) throw new Error('pass the file that holds the transaction hex');
 
 setNetworkId(config.networkId);
-const sponsor = await HeadlessWallet.start(config, seed);
+const sponsor = await HeadlessWallet.start(config, deployerSeed(network));
 try {
   console.log(`sponsored tx: ${await sponsor.sponsor(readFileSync(positionals[0], 'utf8'))}`);
 } finally {

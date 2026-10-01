@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { NETWORKS, deployLixi, readLedger, relinquishAuthority, type NetworkName } from '@lixi/sdk';
 import { nodeProviders } from './providers.js';
+import { deployerSeed } from './secret.js';
 import { HeadlessWallet } from './wallet.js';
 
 const DAY = 86400n;
@@ -12,7 +13,6 @@ const DURATIONS: Record<NetworkName, { minDuration: bigint; maxDuration: bigint 
   undeployed: { minDuration: 60n, maxDuration: 30n * DAY },
   preprod: { minDuration: 3600n, maxDuration: 30n * DAY },
 };
-const GENESIS_SEED = '0'.repeat(63) + '1';
 const DEPLOYMENTS_DIR = fileURLToPath(new URL('../../deployments/', import.meta.url));
 
 const { values } = parseArgs({ options: { network: { type: 'string', default: 'undeployed' } } });
@@ -20,13 +20,8 @@ const network = values.network as NetworkName;
 if (!(network in NETWORKS)) throw new Error(`unknown network ${network}; use undeployed or preprod`);
 const config = NETWORKS[network];
 
-const seed = process.env.LIXI_DEPLOYER_SEED ?? (network === 'undeployed' ? GENESIS_SEED : undefined);
-if (!seed || !/^[0-9a-f]{64}$/i.test(seed)) {
-  throw new Error('set LIXI_DEPLOYER_SEED to 64 hex characters (generate one with: openssl rand -hex 32)');
-}
-
 setNetworkId(config.networkId);
-const wallet = await HeadlessWallet.start(config, seed);
+const wallet = await HeadlessWallet.start(config, deployerSeed(network));
 try {
   console.log(`deployer address: ${wallet.bech32Address()}`);
   console.log('syncing wallet (a fresh Preprod wallet can take several minutes)...');

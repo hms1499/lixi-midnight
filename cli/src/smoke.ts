@@ -17,6 +17,7 @@ import {
   type PersonalLink,
 } from '@lixi/sdk';
 import { nodeProviders } from './providers.js';
+import { deployerSeed } from './secret.js';
 import { HeadlessWallet } from './wallet.js';
 
 /**
@@ -29,11 +30,9 @@ const config = NETWORKS[network];
 const { contractAddress } = JSON.parse(
   readFileSync(fileURLToPath(new URL(`../../deployments/${network}.json`, import.meta.url)), 'utf8'),
 ) as { contractAddress: string };
-const seed = process.env.LIXI_DEPLOYER_SEED ?? (network === 'undeployed' ? '0'.repeat(63) + '1' : undefined);
-if (!seed) throw new Error('set LIXI_DEPLOYER_SEED');
 
 setNetworkId(config.networkId);
-const wallet = await HeadlessWallet.start(config, seed);
+const wallet = await HeadlessWallet.start(config, deployerSeed(network));
 try {
   const providers = nodeProviders(config, wallet);
   const me = await wallet.userAddress();

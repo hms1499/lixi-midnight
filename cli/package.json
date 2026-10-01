@@ -5,6 +5,7 @@
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
+    "test": "vitest run --exclude test/devnet.test.ts",
     "keys": "npm run compact -w @lixi/contract",
     "predeploy": "npm run keys",
     "deploy": "tsx --env-file-if-exists=.env src/deploy.ts",
@@ -22,6 +23,7 @@
     "@midnight-ntwrk/midnight-js-indexer-public-data-provider": "4.1.1",
     "@midnight-ntwrk/midnight-js-node-zk-config-provider": "4.1.1",
     "@midnight-ntwrk/wallet-sdk": "1.2.0",
+    "@scure/bip39": "2.4.0",
     "rxjs": "7.8.2",
     "ws": "8.21.3"
   },

@@ -1694,7 +1694,7 @@ git commit -m "feat(cli): deploy (with authority relinquish), smoke and sponsor 
 
 - [ ] **Step 1: Create the deployer seed (user)**
 
-The user runs this in their own terminal, so the seed never enters the session transcript:
+Option A (user chose this on 2026-10-01): put the recovery phrase of an existing **testnet-only** Lace or 1AM wallet in `cli/.env` as `LIXI_DEPLOYER_MNEMONIC="word1 … word24"`. `cli/src/secret.ts` turns it into the BIP39 seed. Before funding anything, check that the `deployer address` that `deploy` prints equals the wallet's unshielded address. Option B: a fresh seed. The user runs this in their own terminal, so the seed never enters the session transcript:
 ```bash
 printf 'LIXI_DEPLOYER_SEED=%s\n' "$(openssl rand -hex 32)" > cli/.env && chmod 600 cli/.env
 ```
@@ -2024,10 +2024,11 @@ cat > /tmp/lixi-links.ts <<'EOF'
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { NETWORKS, addEnvelope, claimUrl, createEnvelopeTx, deriveEnvelope, linksFor, newVault, privateStateOf } from '@lixi/sdk';
 import { nodeProviders } from './src/providers.js';
+import { deployerSeed } from './src/secret.js';
 import { HeadlessWallet } from './src/wallet.js';
 import dep from '../deployments/preprod.json' with { type: 'json' };
 setNetworkId('preprod');
-const w = await HeadlessWallet.start(NETWORKS.preprod, process.env.LIXI_DEPLOYER_SEED!);
+const w = await HeadlessWallet.start(NETWORKS.preprod, deployerSeed('preprod'));
 const spec = { index: 0, total: 4_000_000n, count: 4, kind: 'personal', split: 'equal' } as const;
 const expiry = BigInt(Math.floor(Date.now() / 1000) + 2 * 86400);
 const vault = addEnvelope(newVault(), { ...spec, expiry, labels: [] });

@@ -2,8 +2,7 @@ import { nativeToken } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import type { LixiProviders, NetworkConfig } from '@lixi/sdk';
 import { HeadlessWallet } from '../src/wallet.js';
 
-/** The devnet genesis wallet, pre-funded with NIGHT and registered for DUST. */
-export const GENESIS_SEED = '0'.repeat(63) + '1';
+export { GENESIS_SEED } from '../src/secret.js';
 
 export const randomSeed = (): string => Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex');
 
