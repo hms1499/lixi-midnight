@@ -19,6 +19,8 @@ if (positionals.length !== 1) throw new Error('pass the file that holds the tran
 setNetworkId(config.networkId);
 const sponsor = await startDeployer(network);
 try {
+  // A wallet restored from the sync cache must catch up before balancing, as deploy does.
+  await sponsor.waitForFeeSync();
   console.log(`sponsored tx: ${await sponsor.sponsor(readFileSync(positionals[0], 'utf8'))}`);
 } finally {
   await sponsor.stop();
