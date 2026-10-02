@@ -34,11 +34,12 @@ export const loadOrCreateVault = (store: VaultStore): SenderVault => {
 };
 
 /**
- * First index at or after `nextIndex` whose envelope id is not on chain yet (skips orphans of lost
- * vault entries). The Create page previews the amounts at this index, so the preview is what gets sealed.
+ * First index at or after `nextIndex` (and `floor`, past removed entries) whose envelope id is not on chain
+ * yet (skips orphans of lost vault entries). The Create page previews the amounts at this index, so the
+ * preview is what gets sealed.
  */
-export const freeIndex = (vault: SenderVault, ledger: Pick<Ledger, 'envelopes'>): number => {
-  let index = nextIndex(vault);
+export const freeIndex = (vault: SenderVault, ledger: Pick<Ledger, 'envelopes'>, floor = 0): number => {
+  let index = Math.max(nextIndex(vault), floor);
   while (ledger.envelopes.member(pureCircuits.envelopeId(kdf(vault.seed, 'nonce', index)))) index++;
   return index;
 };
@@ -62,7 +63,7 @@ export const createEnvelope = async (
   if (form.durationSeconds < min || form.durationSeconds > max) throw new Error('expiry out of range');
   const vault = loadOrCreateVault(store);
   const spec = {
-    index: freeIndex(vault, ledger),
+    index: freeIndex(vault, ledger, store.floor()),
     total: form.total,
     count: form.count,
     kind: form.kind,

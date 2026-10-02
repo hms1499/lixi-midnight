@@ -73,6 +73,9 @@ export const claimWithLink = async (
     } catch (error) {
       const ledger = await chain.readLedger().catch(() => undefined);
       if (!ledger) throw error;
+      // A group records each paid address. If ours is there now, our transaction landed although the call failed.
+      if (link.kind === 'group' && ledger.addrClaims.member(pureCircuits.addrKey(ready.args.id, { bytes: recipient })))
+        return { ok: true, amount: ready.amount, txId: '' };
       const taken = ledger.nullifiers.member(pureCircuits.nullifierOf(ready.args.id, ready.args.share.secret));
       if (taken && link.kind === 'group' && attempt < tries) continue;
       const again = prepare(ledger, link, recipient, now());

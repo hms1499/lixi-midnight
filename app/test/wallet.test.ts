@@ -42,6 +42,22 @@ describe('retryingOnce', () => {
     expect(calls).toBe(2);
     await expect(api.submitTransaction('00')).rejects.toThrow('Rejected');
   });
+
+  it('also retries the idle error on the proving provider the wallet hands out', async () => {
+    let proofs = 0;
+    const api = retryingOnce({
+      getProvingProvider: async () => ({
+        prove: async () => {
+          proofs++;
+          if (proofs === 1) throw new Error('Request failed');
+          return new Uint8Array([1]);
+        },
+      }),
+    } as unknown as ConnectedAPI);
+    const provider = await api.getProvingProvider({} as never);
+    expect(await provider.prove(new Uint8Array(), 'claim')).toEqual(new Uint8Array([1]));
+    expect(proofs).toBe(2);
+  });
 });
 
 describe('connectWallet', () => {

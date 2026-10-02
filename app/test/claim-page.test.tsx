@@ -53,6 +53,46 @@ describe('claim page', () => {
     await screen.findByText(/not a Lixi link/);
   });
 
+  it('shows the same choice of where proofs are made in both wallet panels', async () => {
+    const user = userEvent.setup();
+    const { show, create } = setup();
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByText(/1 tNIGHT is sealed inside/);
+    await user.click(screen.getByRole('button', { name: 'Connect wallet' }));
+    const radios = screen.getAllByRole('radio', { name: 'In my wallet' }) as HTMLInputElement[];
+    expect(radios.map((r) => r.checked)).toEqual([true, true]);
+  });
+
+  it('says the network could not be reached when reading the envelope fails, without wallet advice', async () => {
+    const { show, create } = setup({
+      reader: {
+        readLedger: async () => {
+          throw new TypeError('Failed to fetch');
+        },
+      },
+    });
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByText('Lixi could not reach the Midnight network. Check your connection, then reload the page.');
+  });
+
+  it('does not read the envelope again when the page re-renders', async () => {
+    const { show, create, chain } = setup();
+    const [link] = await create();
+    const page = show(claimUrl('', link));
+    await screen.findByText(/1 tNIGHT is sealed inside/);
+    let reads = 0;
+    const read = chain.readLedger;
+    chain.readLedger = () => {
+      reads++;
+      return read();
+    };
+    page.rerender();
+    await screen.findByText(/1 tNIGHT is sealed inside/);
+    expect(reads).toBe(0);
+  });
+
   it('tells a recipient whose wallet is on another network', async () => {
     const user = userEvent.setup();
     const { show, create } = setup({ config: { network: 'preprod', contractAddress: 'ab'.repeat(32) } });

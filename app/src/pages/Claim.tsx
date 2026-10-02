@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { encodeLink, parseClaimInput, type ClaimLink } from '@lixi/sdk';
 import { Envelope, type EnvelopeState } from '../components/Envelope';
@@ -9,7 +9,7 @@ import { Button, ButtonLink, Greeting, Notice } from '../components/ui';
 import { claimWithLink, previewClaim, type ClaimPreview, type ClaimRefusal } from '../flows/claim';
 import { formatNight } from '../lib/units';
 import { useServices } from '../services';
-import { friendlyError } from '../wallet/errors';
+import { READ_FAILED, friendlyError } from '../wallet/errors';
 import { useDetectedWallets } from '../wallet/WalletContext';
 
 /** Why a lì xì can’t be opened, and what to do about it (spec §6.4, moment 4). */
@@ -123,7 +123,7 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
         const preview = previewClaim(ledger, link, services.now());
         setPhase(preview.ok ? { step: 'ready', preview } : { step: 'refused', reason: preview.reason });
       })
-      .catch((error) => live && setPhase({ step: 'failed', message: friendlyError(error) }));
+      .catch(() => live && setPhase({ step: 'failed', message: READ_FAILED }));
     return () => {
       live = false;
     };
@@ -227,12 +227,15 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
 export const Claim = () => {
   const { hash } = useLocation();
   const fragment = hash.slice(1);
+  // One link object per fragment: a new object on every render would make the Claimer read the chain again.
+  const link = useMemo((): ClaimLink | undefined => {
+    try {
+      return parseClaimInput(fragment);
+    } catch {
+      return undefined;
+    }
+  }, [fragment]);
   if (fragment === '') return <PasteLink />;
-  let link: ClaimLink;
-  try {
-    link = parseClaimInput(fragment);
-  } catch {
-    return <Refused reason="invalid link" />;
-  }
+  if (!link) return <Refused reason="invalid link" />;
   return <Claimer key={fragment} link={link} />;
 };

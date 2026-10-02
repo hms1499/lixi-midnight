@@ -107,7 +107,7 @@ export const Create = () => {
       return { ok: false, message: friendlyError(error) };
     }
   });
-  const [index, setIndex] = useState(() => (vault.ok ? nextIndex(vault.vault) : 0));
+  const [index, setIndex] = useState(() => (vault.ok ? Math.max(nextIndex(vault.vault), store.floor()) : 0));
   const [backedUp, setBackedUp] = useState(() => store.backedUp());
   const [amount, setAmount] = useState('10');
   const [countText, setCountText] = useState('4');
@@ -121,7 +121,7 @@ export const Create = () => {
     if (!vault.ok) return;
     services.reader
       .readLedger()
-      .then((ledger) => setIndex(freeIndex(vault.vault, ledger)))
+      .then((ledger) => setIndex(freeIndex(vault.vault, ledger, store.floor())))
       .catch(() => undefined);
   }, [services.reader, vault]);
 
@@ -180,7 +180,7 @@ export const Create = () => {
       // A failed seal keeps its vault entry and its index, so the preview moves on to the next free one.
       services.reader
         .readLedger()
-        .then((ledger) => setIndex(freeIndex(store.load() ?? vault.vault, ledger)))
+        .then((ledger) => setIndex(freeIndex(store.load() ?? vault.vault, ledger, store.floor())))
         .catch(() => undefined);
     }
   };

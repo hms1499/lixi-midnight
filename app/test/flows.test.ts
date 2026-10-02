@@ -91,6 +91,19 @@ describe('createEnvelope', () => {
     expect(chain.calls).toEqual([]);
   });
 
+  it('never reuses the index of a removed envelope, which may still be on its way', async () => {
+    const { chain, store, create } = setup();
+    const realCreate = chain.create;
+    chain.create = async () => {
+      throw new Error('Rejected');
+    };
+    await expect(create()).rejects.toThrow('Rejected');
+    forgetEnvelope(store, 0);
+    chain.create = realCreate;
+    await create();
+    expect(store.load()!.envelopes.map((e) => e.index)).toEqual([1]);
+  });
+
   it('refuses expiries outside the contract bounds before touching the vault', async () => {
     const { store, create } = setup();
     await expect(create({ durationSeconds: HOUR })).rejects.toThrow('expiry out of range');
@@ -150,13 +163,24 @@ describe('claim', () => {
     chain.claim = async (args) => {
       if (!raced) {
         raced = true;
-        await realClaim(args); // the other claimer lands first...
+        await realClaim({ ...args, recipient: rnd() }); // the other claimer lands first, paid to their own address...
         throw new Error('nullifier already used'); // ...so Bob's transaction fails
       }
       return realClaim(args);
     };
     expect(await claimWithLink(chain, link, rnd(), now)).toEqual({ ok: false, reason: 'all shares claimed' });
     expect(previewClaim(sim.ledger(), link, sim.now)).toEqual({ ok: false, reason: 'all shares claimed' });
+  });
+
+  it('reports the payout when a group claim landed but the wallet call still failed', async () => {
+    const { chain, create, linksOf, now } = setup();
+    await create({ kind: 'group', count: 2, total: 2_000_000n });
+    const realClaim = chain.claim;
+    chain.claim = async (a) => {
+      await realClaim(a);
+      throw new Error('Request failed');
+    };
+    expect(await claimWithLink(chain, linksOf(0)[0], rnd(), now)).toMatchObject({ ok: true, amount: 1_000_000n });
   });
 
   it('rethrows a failure that is not a lost race, such as the user declining in the wallet', async () => {

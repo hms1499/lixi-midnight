@@ -11,6 +11,9 @@ const connectorCode = (error: unknown): string | undefined =>
     ? String((error as { code?: unknown }).code)
     : undefined;
 
+/** Reads go to the network's public indexer, not the wallet, so a failed read gets no wallet advice. */
+export const READ_FAILED = 'Lixi could not reach the Midnight network. Check your connection, then reload the page.';
+
 export const PROOF_SERVER_COMMAND =
   'docker run -p 127.0.0.1:6300:6300 midnightntwrk/proof-server:8.1.0 midnight-proof-server';
 

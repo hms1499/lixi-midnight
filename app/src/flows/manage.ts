@@ -28,8 +28,9 @@ export const refundEnvelope = async (
   return { ok: true, txId: await chain.refund(privateStateOf(vault), id) };
 };
 
-/** Drops a vault entry whose envelope never reached the chain. */
+/** Drops a vault entry whose envelope never reached the chain, and keeps its index from being sealed again. */
 export const forgetEnvelope = (store: VaultStore, index: number): void => {
+  store.raiseFloor(index + 1);
   const vault = store.load();
   if (vault) store.save({ ...vault, envelopes: vault.envelopes.filter((e) => e.index !== index) });
 };

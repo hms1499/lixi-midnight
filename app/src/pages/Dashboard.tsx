@@ -12,10 +12,12 @@ import { localVaultStore } from '../lib/storage';
 import { formatRelative } from '../lib/time';
 import { formatNight } from '../lib/units';
 import { useServices } from '../services';
-import { friendlyError } from '../wallet/errors';
+import { READ_FAILED, friendlyError } from '../wallet/errors';
 import { useWallet } from '../wallet/WalletContext';
 
 export const VIEW_KEY = 'lixi.dashboard.view';
+/** How often the page reads the chain again, so lights change while it is open (frontend spec §7). */
+export const REFRESH_MS = 20_000;
 type View = 'lights' | 'list';
 
 /** What each light of a row shows (spec §3, §6.5). */
@@ -25,6 +27,13 @@ const lightOf = (view: EnvelopeView, opened: boolean): { state: LightState; word
   if (view.state === 'refundable') return { state: 'home', word: 'coming home' };
   if (view.state === 'refunded') return { state: 'out', word: 'came home' };
   return { state: 'lit', word: 'waiting' };
+};
+
+/** Why the contract would refuse a refund, in words. */
+const NOT_HOME: Record<'no envelope' | 'refunded' | 'not expired', string> = {
+  'no envelope': 'It is not on chain.',
+  refunded: 'It already came home.',
+  'not expired': 'It cannot come home before it expires.',
 };
 
 const summary = ({ saved }: EnvelopeView) =>
@@ -67,7 +76,7 @@ const Row = ({
   const { saved } = view;
   const labels = view.shares.map((s, n) => {
     const { state: light, word } = lightOf(view, s.opened);
-    return { light, text: `Lì xì ${n + 1}: ${formatNight(s.amount)} tNIGHT, ${word}` };
+    return { n, light, text: `Lì xì ${n + 1}: ${formatNight(s.amount)} tNIGHT, ${word}` };
   });
 
   const bringHome = async () => {
@@ -77,7 +86,7 @@ const Row = ({
     setError(undefined);
     try {
       const result = await refundEnvelope(state.wallet.chain, vault, saved.index, services.now());
-      if (!result.ok) setError(`It cannot come home yet: ${result.reason}.`);
+      if (!result.ok) setError(NOT_HOME[result.reason]);
       onChanged();
     } catch (e) {
       setError(friendlyError(e));
@@ -97,8 +106,9 @@ const Row = ({
       <div className="space-y-3">
         {mode === 'lights' ? (
           <div className="flex flex-wrap items-center gap-3">
-            {labels.map(({ light, text }) => (
-              <Light key={text} state={busy ? 'pending' : light} label={text} focusable />
+            {labels.map(({ n, light, text }) => (
+              // Keyed by position, so a light changes state in place and animates (frontend spec §7).
+              <Light key={n} state={busy ? 'pending' : light} label={text} focusable />
             ))}
           </div>
         ) : (
@@ -163,8 +173,8 @@ const Restore = ({ onRestored }: { onRestored: () => void }) => {
       } else {
         setMessage({ tone: 'error', text: 'That is not a Lixi backup string. It starts with “lixi_”.' });
       }
-    } catch (error) {
-      setMessage({ tone: 'error', text: friendlyError(error) });
+    } catch {
+      setMessage({ tone: 'error', text: READ_FAILED });
     } finally {
       setBusy(false);
     }
@@ -221,9 +231,21 @@ export const Dashboard = () => {
     services.reader
       .readLedger()
       .then(setLedger)
-      .catch((error) => setLedger(friendlyError(error)));
+      .catch(() => setLedger(READ_FAILED));
   }, [services]);
   useEffect(reload, [reload]);
+
+  // Read the chain again while the page is open; a failed background read keeps what is shown.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      services.reader
+        .readLedger()
+        .then(setLedger)
+        .catch(() => undefined);
+    }, REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [services]);
 
   const now = services.now();
   const envelopes = vault.vault?.envelopes ?? [];

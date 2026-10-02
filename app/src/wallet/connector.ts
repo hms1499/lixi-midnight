@@ -19,14 +19,15 @@ export const detectWallets = (injected: Record<string, InitialAPI> | undefined):
 
 /**
  * 1AM fails the first call after ~1 min idle with "Request failed", and an immediate retry
- * succeeds (spike S4). Every connector call therefore gets one retry on exactly that error.
+ * succeeds (spike S4). Every connector call therefore gets one retry on exactly that error, and so
+ * does the proving provider the wallet hands out, whose `prove` is often the first call after idle.
  */
-export const retryingOnce = (api: ConnectedAPI): ConnectedAPI =>
+export const retryingOnce = <T extends object>(api: T): T =>
   new Proxy(api, {
     get(target, prop, receiver) {
       const value: unknown = Reflect.get(target, prop, receiver);
       if (typeof value !== 'function') return value;
-      return async (...args: unknown[]) => {
+      const call = async (...args: unknown[]) => {
         try {
           return await value.apply(target, args);
         } catch (error) {
@@ -34,6 +35,7 @@ export const retryingOnce = (api: ConnectedAPI): ConnectedAPI =>
           return value.apply(target, args);
         }
       };
+      return prop === 'getProvingProvider' ? async (...args: unknown[]) => retryingOnce(await call(...args)) : call;
     },
   });
 

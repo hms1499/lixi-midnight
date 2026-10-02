@@ -38,16 +38,20 @@ export const setup = (overrides: Partial<Services> = {}) => {
     openChain: async () => chain,
     ...overrides,
   };
-  const show = (path: string) =>
-    render(
-      <ServicesProvider services={services}>
-        <WalletProvider>
-          <MemoryRouter initialEntries={[path]}>
-            <App />
-          </MemoryRouter>
-        </WalletProvider>
-      </ServicesProvider>,
-    );
+  const tree = (path: string) => (
+    <ServicesProvider services={services}>
+      <WalletProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <App />
+        </MemoryRouter>
+      </WalletProvider>
+    </ServicesProvider>
+  );
+  /** Renders the app at `path`; `rerender()` renders the same tree again, as a parent update would. */
+  const show = (path: string) => {
+    const result = render(tree(path));
+    return { ...result, rerender: () => result.rerender(tree(path)) };
+  };
   const create = async (form: Partial<CreateForm> = {}) => {
     await createEnvelope(
       chain,

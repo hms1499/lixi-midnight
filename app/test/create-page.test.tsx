@@ -4,6 +4,7 @@ import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { backupString, deriveEnvelope } from '@lixi/sdk';
 import { formatNight } from '../src/lib/units';
+import { VAULT_KEY } from '../src/lib/storage';
 import { ORIGIN, setup } from './app-harness';
 
 afterEach(cleanup);
@@ -84,6 +85,13 @@ describe('create and share', () => {
     await user.click(screen.getByRole('button', { name: 'Seal 4 lì xì' }));
     await screen.findByRole('heading', { name: '4 lì xì, ready to hand out' });
     expect(store.load()!.envelopes.map((e) => e.index)).toEqual([0, 1]);
+  });
+
+  it('the share page says when the saved envelopes cannot be read', async () => {
+    const { show, storage } = setup();
+    storage.setItem(VAULT_KEY, 'garbage');
+    show(`/share/${'ab'.repeat(32)}`);
+    await screen.findByText(/cannot be read. Restore it from your backup string/);
   });
 
   it('a group link forces equal amounts', async () => {

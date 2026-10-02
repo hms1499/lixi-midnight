@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen, within } from '@testing-library/react';
 import { LINKS } from '../src/lib/links';
 import { setup } from './app-harness';
@@ -46,6 +46,29 @@ describe('site shell and home page', () => {
     const revealed = document.querySelectorAll('[data-reveal]');
     expect(revealed.length).toBe(6);
     for (const s of Array.from(revealed)) expect(s.hasAttribute('data-in')).toBe(true);
+  });
+
+  it('shows every section at once with reduced motion, even where it could watch scrolling', async () => {
+    // An observer that never reports: only the reduced-motion path can mark the sections.
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(prefers-reduced-motion: reduce)' }));
+    try {
+      const { show } = setup();
+      show('/');
+      await screen.findByRole('heading', { name: /Every light is one lì xì/ });
+      const revealed = Array.from(document.querySelectorAll('[data-reveal]'));
+      expect(revealed.length).toBe(6);
+      for (const s of revealed) expect(s.hasAttribute('data-in')).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('answers the questions a first visitor has', async () => {

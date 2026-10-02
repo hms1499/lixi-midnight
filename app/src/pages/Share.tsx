@@ -9,7 +9,7 @@ import { Button, ButtonLink, Greeting, Notice, Working } from '../components/ui'
 import { localVaultStore } from '../lib/storage';
 import { formatNight } from '../lib/units';
 import { useServices } from '../services';
-import { friendlyError } from '../wallet/errors';
+import { READ_FAILED, friendlyError } from '../wallet/errors';
 
 /** Links for one envelope, shown only once the envelope is on chain (spec §6.3). */
 export const Share = () => {
@@ -19,12 +19,13 @@ export const Share = () => {
   const [attempt, setAttempt] = useState(0);
 
   let found: ReturnType<typeof deriveEnvelope> | undefined;
+  let unreadable: string | undefined;
   try {
     const vault = localVaultStore(services.storage).load();
     const saved = vault?.envelopes.find((e) => toHex(deriveEnvelope(vault.seed, e).id) === id);
     found = saved && vault ? deriveEnvelope(vault.seed, saved) : undefined;
-  } catch {
-    found = undefined;
+  } catch (error) {
+    unreadable = friendlyError(error);
   }
   const envelopeId = found?.id;
 
@@ -34,7 +35,7 @@ export const Share = () => {
     services.reader
       .readLedger()
       .then((ledger) => live && setOnChain(ledger.envelopes.member(envelopeId)))
-      .catch((error) => live && setOnChain(friendlyError(error)));
+      .catch(() => live && setOnChain(READ_FAILED));
     return () => {
       live = false;
     };
@@ -43,7 +44,7 @@ export const Share = () => {
   if (!found)
     return (
       <Page>
-        <Notice tone="error">This envelope is not in this browser’s saved envelopes.</Notice>
+        <Notice tone="error">{unreadable ?? 'This envelope is not in this browser’s saved envelopes.'}</Notice>
       </Page>
     );
   if (onChain === undefined)

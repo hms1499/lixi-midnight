@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import type { ProverChoice } from '../chain/port';
 import { LINKS } from '../lib/links';
 import { loadProver, saveProver } from '../lib/storage';
@@ -20,6 +20,8 @@ export const WalletPanel = ({ purpose, cta = (name) => `Connect ${name}` }: Pane
   const { state, connect } = useWallet();
   const wallets = useDetectedWallets();
   const [prover, setProver] = useState<ProverChoice>(() => loadProver(storage));
+  // The header and a page can both show a panel; each needs its own radio group.
+  const group = useId();
   const choose = (p: ProverChoice) => {
     setProver(p);
     saveProver(storage, p);
@@ -50,11 +52,11 @@ export const WalletPanel = ({ purpose, cta = (name) => `Connect ${name}` }: Pane
       <fieldset className="space-y-1 text-sm text-paper-soft">
         <legend className="mb-1 font-semibold text-paper">Where proofs are made</legend>
         <label className="flex gap-2">
-          <input type="radio" name="prover" checked={prover === 'wallet'} onChange={() => choose('wallet')} />
+          <input type="radio" name={group} checked={prover === 'wallet'} onChange={() => choose('wallet')} />
           In my wallet
         </label>
         <label className="flex gap-2">
-          <input type="radio" name="prover" checked={prover === 'local'} onChange={() => choose('local')} />
+          <input type="radio" name={group} checked={prover === 'local'} onChange={() => choose('local')} />
           On this computer, with the local proof server
         </label>
         {prover === 'local' && (

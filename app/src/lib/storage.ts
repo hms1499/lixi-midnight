@@ -3,6 +3,7 @@ import type { ProverChoice } from '../chain/port';
 
 export const VAULT_KEY = 'lixi.vault.v1';
 export const BACKED_UP_KEY = 'lixi.vault.backedUp';
+export const FLOOR_KEY = 'lixi.vault.floor';
 
 /** Where the sender's vault lives between visits. */
 export type VaultStore = {
@@ -12,6 +13,9 @@ export type VaultStore = {
   /** Whether the user confirmed saving the backup string of the current vault. */
   backedUp(): boolean;
   setBackedUp(done: boolean): void;
+  /** Lowest index a new envelope may use. A removed entry's transaction may still land, so its index is never reused. */
+  floor(): number;
+  raiseFloor(index: number): void;
 };
 
 /**
@@ -34,6 +38,13 @@ export const localVaultStore = (storage: Storage): VaultStore => ({
   backedUp: () => storage.getItem(BACKED_UP_KEY) === 'yes',
   setBackedUp(done) {
     storage.setItem(BACKED_UP_KEY, done ? 'yes' : 'no');
+  },
+  floor() {
+    const n = Number(storage.getItem(FLOOR_KEY));
+    return Number.isSafeInteger(n) && n > 0 ? n : 0;
+  },
+  raiseFloor(index) {
+    if (index > this.floor()) storage.setItem(FLOOR_KEY, String(index));
   },
 });
 
