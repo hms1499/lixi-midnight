@@ -10,3 +10,4 @@ coverage/
 deployments/undeployed.json
 cli/.wallet-cache/
 *.local.txt
+.superpowers/
