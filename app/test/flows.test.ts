@@ -1,0 +1,242 @@
+import { describe, expect, it } from 'vitest';
+import { deriveEnvelope, linksFor, type ClaimLink } from '@lixi/sdk';
+import { createEnvelope, freeIndex, type CreateForm } from '../src/flows/create';
+import { claimWithLink, previewClaim } from '../src/flows/claim';
+import { forgetEnvelope, refundEnvelope, restoreVault } from '../src/flows/manage';
+import { envelopeView } from '../src/lib/status';
+import { localVaultStore } from '../src/lib/storage';
+import { HOUR, LixiSimulator, MemoryStorage, T0, rnd, simChain } from './helpers';
+
+const form = (over: Partial<CreateForm> = {}): CreateForm => ({
+  total: 3_000_000n,
+  count: 3,
+  split: 'equal',
+  kind: 'personal',
+  durationSeconds: 2 * HOUR,
+  ...over,
+});
+
+const setup = () => {
+  const sim = new LixiSimulator(BigInt(HOUR));
+  const chain = simChain(sim);
+  const store = localVaultStore(new MemoryStorage());
+  const refundAddress = rnd();
+  const create = (over: Partial<CreateForm> = {}) => createEnvelope(chain, store, form(over), refundAddress, sim.now);
+  const linksOf = (index: number): ClaimLink[] => {
+    const vault = store.load()!;
+    return linksFor(
+      deriveEnvelope(
+        vault.seed,
+        vault.envelopes.find((e) => e.index === index)!,
+      ),
+    );
+  };
+  return { sim, chain, store, refundAddress, create, linksOf, now: () => sim.now };
+};
+
+describe('createEnvelope', () => {
+  it('saves the vault entry, then creates the envelope on chain', async () => {
+    const { sim, store, create } = setup();
+    const { id } = await create();
+    const vault = store.load()!;
+    expect(vault.envelopes).toHaveLength(1);
+    expect(vault.envelopes[0]).toMatchObject({ index: 0, total: 3_000_000n, count: 3, expiry: BigInt(T0 + 2 * HOUR) });
+    expect(sim.ledger().envelopes.member(id)).toBe(true);
+    expect(store.backedUp()).toBe(false);
+  });
+
+  it('keeps the vault entry when the transaction fails, and the dashboard shows it as missing', async () => {
+    const { sim, chain, store, create } = setup();
+    chain.create = async () => {
+      throw new Error('Rejected');
+    };
+    await expect(create()).rejects.toThrow('Rejected');
+    const vault = store.load()!;
+    expect(envelopeView(sim.ledger(), vault.seed, vault.envelopes[0], sim.now).state).toBe('missing');
+    forgetEnvelope(store, 0);
+    expect(store.load()!.envelopes).toHaveLength(0);
+  });
+
+  it('skips an index whose envelope is already on chain but missing from the vault', async () => {
+    const { store, create } = setup();
+    await create();
+    forgetEnvelope(store, 0); // the vault lost it, the chain did not
+    await create();
+    expect(store.load()!.envelopes.map((e) => e.index)).toEqual([1]);
+  });
+
+  it('previews the amounts of exactly the index it will seal', async () => {
+    const { sim, store, create } = setup();
+    await create();
+    forgetEnvelope(store, 0); // index 0 is on chain but no longer in the vault
+    const vault = store.load()!;
+    const index = freeIndex(vault, sim.ledger());
+    expect(index).toBe(1);
+    const preview = deriveEnvelope(vault.seed, {
+      index,
+      total: 5_000_000n,
+      count: 4,
+      kind: 'personal',
+      split: 'random',
+    });
+    await create({ total: 5_000_000n, count: 4, split: 'random' });
+    const sealed = store.load()!.envelopes.find((e) => e.index === index)!;
+    expect(deriveEnvelope(store.load()!.seed, sealed).shares).toEqual(preview.shares);
+  });
+
+  it('refuses expiries outside the contract bounds before touching the vault', async () => {
+    const { store, create } = setup();
+    await expect(create({ durationSeconds: HOUR })).rejects.toThrow('expiry out of range');
+    await expect(create({ durationSeconds: 30 * 86400 })).rejects.toThrow('expiry out of range');
+    expect(store.load()).toBeUndefined();
+  });
+
+  it('rejects a random split for a group link', async () => {
+    const { create } = setup();
+    await expect(create({ kind: 'group', split: 'random' })).rejects.toThrow(/equal split/);
+  });
+});
+
+describe('claim', () => {
+  it('previews, claims and pays the exact share', async () => {
+    const { sim, chain, create, linksOf, now } = setup();
+    await create({ split: 'random' });
+    const [link] = linksOf(0);
+    const preview = previewClaim(sim.ledger(), link, sim.now);
+    expect(preview).toMatchObject({ ok: true, expiringSoon: false });
+    const who = rnd();
+    const result = await claimWithLink(chain, link, who, now);
+    expect(result).toEqual({ ok: true, amount: preview.ok && preview.amount, txId: 'tx2' });
+    expect(previewClaim(sim.ledger(), link, sim.now)).toEqual({ ok: false, reason: 'already claimed' });
+    expect(await claimWithLink(chain, link, rnd(), now)).toEqual({ ok: false, reason: 'already claimed' });
+  });
+
+  it('warns when less than 10 minutes are left, and refuses after expiry', async () => {
+    const { sim, create, linksOf } = setup();
+    await create();
+    const [link] = linksOf(0);
+    sim.now = T0 + 2 * HOUR - 300;
+    expect(previewClaim(sim.ledger(), link, sim.now)).toMatchObject({ ok: true, expiringSoon: true });
+    sim.now = T0 + 2 * HOUR;
+    expect(previewClaim(sim.ledger(), link, sim.now)).toEqual({ ok: false, reason: 'expired' });
+  });
+
+  it('says "no envelope" for a link from another deployment', async () => {
+    const { sim, linksOf, create } = setup();
+    await create();
+    const [link] = linksOf(0);
+    const other = new LixiSimulator(BigInt(HOUR));
+    expect(previewClaim(other.ledger(), link, sim.now)).toEqual({ ok: false, reason: 'no envelope' });
+  });
+
+  it('a group link pays each wallet once and retries when another claimer takes its share', async () => {
+    const { sim, chain, create, linksOf, now } = setup();
+    await create({ kind: 'group', count: 2, total: 2_000_000n });
+    const [link] = linksOf(0);
+    const alice = rnd();
+    expect(await claimWithLink(chain, link, alice, now)).toMatchObject({ ok: true, amount: 1_000_000n });
+    expect(await claimWithLink(chain, link, alice, now)).toEqual({ ok: false, reason: 'address already claimed' });
+
+    // Bob's first submission loses a race: someone claims the last share first.
+    const realClaim = chain.claim;
+    let raced = false;
+    chain.claim = async (args) => {
+      if (!raced) {
+        raced = true;
+        await realClaim(args); // the other claimer lands first...
+        throw new Error('nullifier already used'); // ...so Bob's transaction fails
+      }
+      return realClaim(args);
+    };
+    expect(await claimWithLink(chain, link, rnd(), now)).toEqual({ ok: false, reason: 'all shares claimed' });
+    expect(previewClaim(sim.ledger(), link, sim.now)).toEqual({ ok: false, reason: 'all shares claimed' });
+  });
+
+  it('rethrows a failure that is not a lost race, such as the user declining in the wallet', async () => {
+    const { chain, create, linksOf, now } = setup();
+    await create();
+    chain.claim = async () => {
+      throw new Error('Rejected');
+    };
+    await expect(claimWithLink(chain, linksOf(0)[0], rnd(), now)).rejects.toThrow('Rejected');
+  });
+
+  it('prefers "refunded" over "already claimed"', async () => {
+    const { sim, chain, store, create, linksOf, now } = setup();
+    await create({ count: 1, total: 1_000_000n });
+    const [link] = linksOf(0);
+    sim.now = T0 + 2 * HOUR;
+    expect(await refundEnvelope(chain, store.load()!, 0, sim.now)).toMatchObject({ ok: true });
+    expect(await claimWithLink(chain, link, rnd(), now)).toEqual({ ok: false, reason: 'refunded' });
+  });
+});
+
+describe('dashboard state and refund', () => {
+  it('tracks claims, offers refund only after expiry, and refunds exactly the unclaimed rest', async () => {
+    const { sim, chain, store, refundAddress, create, linksOf, now } = setup();
+    await create({ count: 3, total: 3_000_000n });
+    const vault = () => store.load()!;
+    const view = () => envelopeView(sim.ledger(), vault().seed, vault().envelopes[0], sim.now);
+    expect(view()).toMatchObject({ state: 'open', claimed: 0, unclaimedAmount: 3_000_000n });
+
+    await claimWithLink(chain, linksOf(0)[1], rnd(), now);
+    expect(view()).toMatchObject({ state: 'open', claimed: 1, unclaimedAmount: 2_000_000n });
+    expect(view().shares.map((s) => s.opened)).toEqual([false, true, false]);
+    expect(await refundEnvelope(chain, vault(), 0, sim.now)).toEqual({ ok: false, reason: 'not expired' });
+
+    sim.now = T0 + 2 * HOUR;
+    expect(view().state).toBe('refundable');
+    expect(await refundEnvelope(chain, vault(), 0, sim.now)).toMatchObject({ ok: true });
+    expect(sim.lastPayouts().get(Buffer.from(refundAddress).toString('hex'))).toBe(2_000_000n);
+    expect(view().state).toBe('refunded');
+    expect(await refundEnvelope(chain, vault(), 0, sim.now)).toEqual({ ok: false, reason: 'refunded' });
+  });
+
+  it('shows a fully claimed envelope as empty', async () => {
+    const { sim, chain, store, create, linksOf, now } = setup();
+    await create({ count: 2, total: 2_000_000n });
+    for (const link of linksOf(0)) await claimWithLink(chain, link, rnd(), now);
+    const vault = store.load()!;
+    expect(envelopeView(sim.ledger(), vault.seed, vault.envelopes[0], sim.now)).toMatchObject({
+      state: 'empty',
+      claimed: 2,
+    });
+  });
+});
+
+describe('restoreVault', () => {
+  it('rebuilds every envelope from the backup string alone', async () => {
+    const { chain, store, create } = setup();
+    await create({ split: 'random', count: 5, total: 5_000_000n });
+    await create({ kind: 'group', count: 4, total: 4_000_000n });
+    const { backupString } = await import('@lixi/sdk');
+    const backup = backupString(store.load()!);
+    const fresh = localVaultStore(new MemoryStorage());
+    expect(await restoreVault(chain, fresh, `  ${backup}\n`, { replaceDifferent: false })).toEqual({
+      ok: true,
+      found: 2,
+    });
+    expect(fresh.load()!.envelopes.map(({ index, count, kind, split }) => ({ index, count, kind, split }))).toEqual(
+      store.load()!.envelopes.map(({ index, count, kind, split }) => ({ index, count, kind, split })),
+    );
+    expect(fresh.backedUp()).toBe(true);
+  });
+
+  it('will not silently replace a vault that holds envelopes under another seed', async () => {
+    const a = setup();
+    await a.create();
+    const b = setup();
+    await b.create();
+    const { backupString } = await import('@lixi/sdk');
+    const backupB = backupString(b.store.load()!);
+    expect(await restoreVault(a.chain, a.store, backupB, { replaceDifferent: false })).toEqual({
+      ok: false,
+      reason: 'different seed',
+    });
+    expect(await restoreVault(a.chain, a.store, 'hello', { replaceDifferent: true })).toEqual({
+      ok: false,
+      reason: 'not a backup',
+    });
+    expect(await restoreVault(a.chain, a.store, backupB, { replaceDifferent: true })).toMatchObject({ ok: true });
+  });
+});
