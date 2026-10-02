@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router';
 import { Layout } from './components/Layout';
+import { Claim } from './pages/Claim';
 import { Create } from './pages/Create';
 import { Home } from './pages/Home';
 import { NotFound } from './pages/NotFound';
@@ -11,6 +12,7 @@ export const App = () => (
       <Route index element={<Home />} />
       <Route path="create" element={<Create />} />
       <Route path="share/:id" element={<Share />} />
+      <Route path="c" element={<Claim />} />
       <Route path="*" element={<NotFound />} />
     </Route>
   </Routes>
