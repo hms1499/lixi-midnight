@@ -1,5 +1,6 @@
 import { MAX_SHARES, TREE_DEPTH, type PathEntry, type Share } from '@lixi/contract';
 import { bigintToBytes, bytesToBigint, fromBase64Url, toBase64Url } from './bytes.js';
+import { equalSplit } from './split.js';
 
 export type PersonalLink = { kind: 'personal'; id: Uint8Array; share: Share; path: PathEntry[] };
 export type GroupLink = { kind: 'group'; id: Uint8Array; groupSecret: Uint8Array; count: number; total: bigint };
@@ -37,14 +38,14 @@ export const decodeLink = (fragment: string): ClaimLink => {
     const body = fromBase64Url(fragment.slice(GROUP.length));
     if (body.length !== GROUP_LEN) throw new Error('invalid link');
     const count = body[64];
+    const total = bytesToBigint(body.slice(65));
     if (count < 1 || count > MAX_SHARES) throw new Error('invalid link');
-    return {
-      kind: 'group',
-      id: body.slice(0, 32),
-      groupSecret: body.slice(32, 64),
-      count,
-      total: bytesToBigint(body.slice(65)),
-    };
+    try {
+      equalSplit(total, count); // at least one unit per share, and each share fits Uint<64>
+    } catch {
+      throw new Error('invalid link');
+    }
+    return { kind: 'group', id: body.slice(0, 32), groupSecret: body.slice(32, 64), count, total };
   }
   if (fragment.startsWith(PERSONAL)) {
     const body = fromBase64Url(fragment.slice(PERSONAL.length));

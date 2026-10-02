@@ -36,6 +36,15 @@ describe('claim links', () => {
     expect(() => decodeLink(encodeLink(zeroAmount))).toThrow(/invalid link/);
   });
 
+  it('rejects group links whose total cannot give every share a unit', () => {
+    const d = deriveEnvelope(seed, { index: 4, total: 900n, count: 3, kind: 'group', split: 'equal' });
+    const [link] = linksFor(d);
+    if (link.kind !== 'group') throw new Error('expected a group link');
+    expect(() => decodeLink(encodeLink({ ...link, total: 2n }))).toThrow(/invalid link/);
+    expect(() => decodeLink(encodeLink({ ...link, count: 1, total: 1n << 64n }))).toThrow(/invalid link/);
+    expect(decodeLink(encodeLink({ ...link, total: 3n }))).toMatchObject({ count: 3, total: 3n });
+  });
+
   it('accepts pasted URLs with whitespace and trailing punctuation', () => {
     const d = deriveEnvelope(seed, { index: 4, total: 10n, count: 1, kind: 'personal', split: 'equal' });
     const link = linksFor(d)[0];
