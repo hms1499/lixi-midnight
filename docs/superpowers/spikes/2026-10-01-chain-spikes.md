@@ -29,6 +29,23 @@ The shared phrase is the likely cause of the A/A′ failures:
 - The headless wallet had spent DUST shortly before, so 1AM probably built on stale DUST state.
 - The same flows passed as soon as 1AM had a wallet of its own.
 
+## S4 retest: Lace 2.4.2 against the built app (Preprod, 2026-10-02)
+
+Run during 1AM's DUST outage, on the built site with the CSP (`vite preview`) and the local proof server.
+
+| Step | Result |
+|---|---|
+| `connect('preprod')` | **Works.** The run B hang is gone, and #2243 ("Wallet is unavailable" right after connect) did not occur either. |
+| Prove, "On this computer" (`127.0.0.1:6300`) | **Works.** The proof server logged `/check` + `/prove` (~0.25 s) for each attempt. |
+| Prove, "In my wallet" | Blocked by the CSP. Lace 2.4.2 now has `getProvingProvider`, but it proves through its own proof-server setting, `http://localhost:6300` for Local. CSP treats that as a different host from `127.0.0.1`. **Fixed:** the CSP lists both loopback names. A Remote setting stays blocked, which keeps audit H4. |
+| Sign prompt | Shows the right claim (1 tNIGHT to the wallet's own address, `dust_actions: None`). |
+| Balance (DUST fee) | **Failed** with a bare `Error`. Lace reported `getDustBalance() = { balance: 0, cap: 0 }`, although its NIGHT designation (tx `354976da…6d3d`, block 2805648) had landed SUCCESS with a `DustInitialUtxo` 25+ min earlier. A browser restart did not help. Lace's DUST view is stale (matches #2256), which is external. Nothing landed on chain. |
+
+What the app now does about it:
+- A failed balance asks the wallet for its DUST and says "no DUST, generate it" when there is none. It asks only after a failure, because 1AM pays through its sponsor.
+- A locked Lace (`Rejected`, "Wallet is locked") reads as locked, not as declined.
+- A prover fetch that fails ("'check' returned an error: TypeError: Failed to fetch") explains how to start the local proof server.
+
 ## Findings Plan 3 must carry
 - **Bundling:** Vite 8 with `vite-plugin-wasm` and `build.target: 'esnext'`. No top-level-await plugin (it needs rollup). A `buffer` polyfill is required. Pass the browser `WebSocket` to `indexerPublicDataProvider`.
 - **Assets:** serve `keys/` and `zkir/` for `FetchZkConfigProvider`. Copy only those two folders into the app's public assets, not the whole `managed/` tree.

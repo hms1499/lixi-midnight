@@ -14,6 +14,9 @@ type PanelProps = {
   readonly cta?: (walletName: string) => string;
 };
 
+/** Lace connects and claims with the local proof server (spike S4 retest); it is not a footer place like 1AM. */
+const LACE_HREF = 'https://www.lace.io';
+
 /** Lists injected wallets, lets the user choose where proofs are made, and connects (spec §6.6). */
 export const WalletPanel = ({ purpose, cta = (name) => `Connect ${name}` }: PanelProps) => {
   const { storage } = useServices();
@@ -37,6 +40,10 @@ export const WalletPanel = ({ purpose, cta = (name) => `Connect ${name}` }: Pane
           No Midnight wallet found in this browser. Install{' '}
           <a className="underline underline-offset-4" href={LINKS.wallet.href} target="_blank" rel="noreferrer">
             1AM
+          </a>{' '}
+          or{' '}
+          <a className="underline underline-offset-4" href={LACE_HREF} target="_blank" rel="noreferrer">
+            Lace
           </a>
           , set it to Preprod, then reload this page.
         </Notice>

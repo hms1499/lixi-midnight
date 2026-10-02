@@ -19,11 +19,11 @@ describe('appConfig', () => {
 });
 
 describe('CSP', () => {
-  it('allows only our origin, the public indexer and the local proof server', () => {
+  it('allows only our origin, the public indexer and the local proof server, under both its names', () => {
     const policy = cspFor('preprod');
     expect(policy).toContain("script-src 'self' 'wasm-unsafe-eval'");
     expect(policy).toContain(
-      "connect-src 'self' https://indexer.preprod.midnight.network wss://indexer.preprod.midnight.network http://127.0.0.1:6300",
+      "connect-src 'self' https://indexer.preprod.midnight.network wss://indexer.preprod.midnight.network http://127.0.0.1:6300 http://localhost:6300",
     );
     expect(policy).not.toMatch(/'unsafe-inline'|'unsafe-eval'|\*/);
   });

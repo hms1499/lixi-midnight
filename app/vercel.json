@@ -10,7 +10,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://indexer.preprod.midnight.network wss://indexer.preprod.midnight.network http://127.0.0.1:6300; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://indexer.preprod.midnight.network wss://indexer.preprod.midnight.network http://127.0.0.1:6300 http://localhost:6300; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
         },
         { "key": "Referrer-Policy", "value": "no-referrer" },
         { "key": "X-Content-Type-Options", "value": "nosniff" }

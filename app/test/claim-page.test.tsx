@@ -22,6 +22,15 @@ describe('claim page', () => {
     expect(screen.getByRole('img', { name: 'An opened lì xì' })).toBeTruthy();
   });
 
+  it('names both wallets that work when none is installed', async () => {
+    const { show, create } = setup({ detectWallets: () => [] });
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByText(/No Midnight wallet found in this browser/);
+    expect(screen.getByRole('link', { name: '1AM' }).getAttribute('href')).toBe('https://1am.xyz');
+    expect(screen.getByRole('link', { name: 'Lace' }).getAttribute('href')).toBe('https://www.lace.io');
+  });
+
   it('says why a lì xì cannot be opened', async () => {
     const { show, create, chain } = setup();
     const [link] = await create();

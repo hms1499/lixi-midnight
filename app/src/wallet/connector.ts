@@ -39,6 +39,20 @@ export const retryingOnce = <T extends object>(api: T): T =>
     },
   });
 
+/**
+ * Has the wallet add the DUST fee to `tx`. Lace with no DUST fails here with a bare Error (spike S4
+ * retest), so a failure asks the wallet for its DUST and reports 'no dust' when there is none. It
+ * asks only after a failure: 1AM can pay through its sponsor with no DUST of its own.
+ */
+export const balanceOrExplain = async (api: ConnectedAPI, tx: string): Promise<string> => {
+  try {
+    return (await api.balanceUnsealedTransaction(tx)).tx;
+  } catch (error) {
+    const dust = await api.getDustBalance().catch(() => undefined);
+    throw dust?.balance === 0n ? new Error('no dust') : error;
+  }
+};
+
 /** Connects to `wallet` for `networkId`, giving up with 'connect timed out' after `timeoutMs`. */
 export const connectWallet = async (
   wallet: InitialAPI,

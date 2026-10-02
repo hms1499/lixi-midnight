@@ -51,6 +51,8 @@ npm run dev -w @lixi/app                                     # dev server with h
 
 You need the [1AM](https://1am.xyz) wallet on Preprod, with tNIGHT from the faucet registered for DUST. To prove on your own machine instead of in the wallet, start the proof server (`docker run -p 127.0.0.1:6300:6300 midnightntwrk/proof-server:8.1.0 midnight-proof-server`) and choose "On this computer" when connecting.
 
+[Lace](https://www.lace.io) 2.4.2 also works, always with that local proof server: set Midnight Settings → Proof Server to Local, or choose "On this computer". Lace pays fees from its own DUST, so designate your NIGHT first (NIGHT → Generate DUST) and wait until Lace shows a DUST balance above zero.
+
 Fonts: Fraunces and Playwrite VN (SIL Open Font License 1.1). Icons adapted from Lucide (ISC).
 
 ## License

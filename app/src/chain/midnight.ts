@@ -16,6 +16,7 @@ import {
   type LixiProviders,
 } from '@lixi/sdk';
 import type { AppConfig } from '../config';
+import { balanceOrExplain } from '../wallet/connector';
 import type { LixiChain, LixiReader, ProverChoice } from './port';
 
 type WebSocketCtor = Parameters<typeof indexerPublicDataProvider>[2];
@@ -66,7 +67,7 @@ export const walletChain = async (api: ConnectedAPI, config: AppConfig, prover: 
       getCoinPublicKey: () => shielded.shieldedCoinPublicKey,
       getEncryptionPublicKey: () => shielded.shieldedEncryptionPublicKey,
       balanceTx: async (tx) => {
-        const { tx: balanced } = await api.balanceUnsealedTransaction(toHex(tx.serialize()));
+        const balanced = await balanceOrExplain(api, toHex(tx.serialize()));
         return Transaction.deserialize('signature', 'proof', 'binding', fromHex(balanced));
       },
     },

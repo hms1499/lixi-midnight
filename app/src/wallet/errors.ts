@@ -24,6 +24,8 @@ export const PROOF_SERVER_COMMAND =
 export const friendlyError = (error: unknown): string => {
   const code = connectorCode(error);
   const text = messageOf(error);
+  // Lace reports a locked wallet with the same code as a declined request.
+  if (code === 'Rejected' && /locked/i.test(text)) return 'Your wallet is locked. Unlock it, then try again.';
   if (code === 'Rejected' || code === 'PermissionRejected') return 'You declined the request in your wallet.';
   if (code === 'Disconnected') return 'Your wallet disconnected. Connect it again.';
   if (text === 'connect timed out')
@@ -31,6 +33,10 @@ export const friendlyError = (error: unknown): string => {
   if (text === 'wrong network') return 'Your wallet is on another network. Switch it to Preprod, then connect again.';
   if (text === 'proof server unreachable')
     return `The local proof server is not running. Start it with “${PROOF_SERVER_COMMAND}”, or prove in your wallet instead.`;
+  // The ledger wraps a failed fetch from the prover's /check or /prove, whichever prover was chosen. Seen when
+  // the proof server is down, and when the CSP blocks a wallet's proof server that is not local (audit H4).
+  if (/returned an error: TypeError: Failed to fetch/.test(text))
+    return `A proof server could not be reached. Start the local one with “${PROOF_SERVER_COMMAND}”. If your wallet makes the proofs, set it to that local proof server (in Lace: Midnight Settings, Proof Server, Local).`;
   if (text === 'corrupt vault')
     return 'Your saved Lixi data cannot be read. Restore it from your backup string on the Dashboard.';
   if (text === 'expiry out of range') return 'That expiry is outside what the contract allows. Pick another one.';
@@ -43,5 +49,11 @@ export const friendlyError = (error: unknown): string => {
     return 'The network refused the fee your wallet added, because the wallet’s DUST is out of date. Nothing was sent. Open your wallet, let it finish syncing, and try again in a few minutes.';
   // 1AM allows one pending transaction at a time; its own message says what to do (spike S4).
   if (/already pending/i.test(text)) return text;
-  return `${text.replace(/\.$/, '')}. If your wallet just sent another transaction, wait about 30 seconds and try again.`;
+  // The SDK wraps whatever the prover or wallet threw; only the wallet's part means anything to the user.
+  const said = text.replace(/^Unexpected error submitting scoped transaction '[^']*': (Error: ?)?/, '');
+  if (said === 'no dust')
+    return 'Your wallet has no DUST to pay the fee. Nothing was sent. Designate your NIGHT to generate DUST (in Lace: NIGHT, then Generate DUST), wait until your DUST balance is above zero, then try again.';
+  const retry = 'If your wallet just sent another transaction, wait about 30 seconds and try again.';
+  if (said === '' || said === 'Error') return `Your wallet could not finish the transaction. ${retry}`;
+  return `${said.replace(/\.$/, '')}. ${retry}`;
 };
