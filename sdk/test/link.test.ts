@@ -53,4 +53,16 @@ describe('claim links', () => {
     expect(parseClaimInput(encodeLink(link))).toEqual(link);
     expect(() => parseClaimInput('https://lixi.example/c')).toThrow(/invalid link/);
   });
+
+  it('finds the link inside a whole pasted chat message', () => {
+    const personal = linksFor(
+      deriveEnvelope(seed, { index: 4, total: 10n, count: 1, kind: 'personal', split: 'equal' }),
+    )[0];
+    const group = linksFor(deriveEnvelope(seed, { index: 5, total: 9n, count: 3, kind: 'group', split: 'equal' }))[0];
+    const url = claimUrl('https://lixi.example', personal);
+    expect(parseClaimInput(`Chúc mừng năm mới! Lì xì nè: ${url} thanks!`)).toEqual(personal);
+    expect(parseClaimInput(`${url}\nHappy new year #tet 🧧`)).toEqual(personal);
+    expect(parseClaimInput(`"${claimUrl('https://lixi.example', group)}", one per wallet`)).toEqual(group);
+    expect(() => parseClaimInput('Happy new year #v1.tet')).toThrow(/invalid link/);
+  });
 });

@@ -65,10 +65,17 @@ export const decodeLink = (fragment: string): ClaimLink => {
 export const claimUrl = (origin: string, link: ClaimLink): string => `${origin}/c#${encodeLink(link)}`;
 
 /**
- * Accepts what people actually paste: a full URL, a bare fragment, surrounding whitespace,
- * or trailing punctuation added by chat apps ("…abc)." ). Throws 'invalid link' otherwise.
+ * Finds the link in what people actually paste: a full URL, a bare fragment, or a whole chat message
+ * around it ("Here: …abc). Happy new year!"). Base64url has no '.', so a link is `v1.` or `g1.` plus the
+ * longest base64url run after it. Throws 'invalid link' if no candidate decodes.
  */
 export const parseClaimInput = (text: string): ClaimLink => {
-  const afterHash = text.trim().split('#').pop() ?? '';
-  return decodeLink(afterHash.replace(/[^A-Za-z0-9_-]+$/, ''));
+  for (const [candidate] of text.matchAll(/[vg]1\.[A-Za-z0-9_-]+/g)) {
+    try {
+      return decodeLink(candidate);
+    } catch {
+      // not a link; try the next candidate
+    }
+  }
+  throw new Error('invalid link');
 };
