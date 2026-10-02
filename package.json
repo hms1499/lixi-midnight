@@ -11,6 +11,7 @@
     "contract",
     "sdk",
     "cli",
+    "app",
     "spikes/s4-wallet"
   ],
   "scripts": {

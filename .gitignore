@@ -11,3 +11,6 @@ deployments/undeployed.json
 cli/.wallet-cache/
 *.local.txt
 .superpowers/
+app/public/keys/
+app/public/zkir/
+.vercel/
