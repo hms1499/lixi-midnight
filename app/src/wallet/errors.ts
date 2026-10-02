@@ -34,6 +34,10 @@ export const friendlyError = (error: unknown): string => {
   if (text === 'amounts changed') return 'The amounts just changed. Check them, then seal again.';
   if (/syncing/i.test(text))
     return 'Your wallet is still syncing with the network. Open it, wait until the sync finishes (a new wallet can take a while), then try again.';
+  // Node error 171 is OutOfDustValidityWindow: the wallet built its DUST fee on a stale view of the chain
+  // (seen on Preprod 2026-10-02 while 1AM's DUST sync was stale). The node rejects it, so nothing lands.
+  if (/Custom error: 171\b/.test(text))
+    return 'The network refused the fee your wallet added, because the wallet’s DUST is out of date. Nothing was sent. Open your wallet, let it finish syncing, and try again in a few minutes.';
   // 1AM allows one pending transaction at a time; its own message says what to do (spike S4).
   if (/already pending/i.test(text)) return text;
   return `${text.replace(/\.$/, '')}. If your wallet just sent another transaction, wait about 30 seconds and try again.`;

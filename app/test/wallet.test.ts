@@ -65,6 +65,11 @@ describe('friendlyError', () => {
     );
     expect(friendlyError(new Error('proof server unreachable'))).toMatch(/docker run/);
     expect(friendlyError(new Error('amounts changed'))).toBe('The amounts just changed. Check them, then seal again.');
+    const staleDust =
+      "Unexpected error submitting scoped transaction '<unnamed>': Error: Operation failed: 1010: Invalid Transaction: Custom error: 171: (FiberFailure) SubmissionError: Transaction submission error";
+    expect(friendlyError(new Error(staleDust))).toBe(
+      'The network refused the fee your wallet added, because the wallet’s DUST is out of date. Nothing was sent. Open your wallet, let it finish syncing, and try again in a few minutes.',
+    );
     const pending = 'A transaction is already pending. Wait for it to confirm or expire before requesting another.';
     expect(friendlyError(new Error(pending))).toBe(pending);
     expect(friendlyError(new Error('boom'))).toBe(
