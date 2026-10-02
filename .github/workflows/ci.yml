@@ -1,6 +1,6 @@
 name: CI
 
-# Every push: format, lint, typecheck, unit tests and the full compile (~1 min).
+# Every push: format, lint, typecheck, unit tests, full compile and the app build (~1–2 min).
 # The slow devnet suite lives in devnet.yml.
 on:
   push:
@@ -32,3 +32,5 @@ jobs:
       - run: npm test
       - name: Full compile with proving keys
         run: npm run compact
+      - name: Build the app
+        run: npm run build -w @lixi/app

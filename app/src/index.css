@@ -1,0 +1,397 @@
+@import 'tailwindcss';
+
+/* Playwrite VN, the full font with Vietnamese (the npm package ships Latin only). OFL-1.1. */
+@font-face {
+  font-family: 'Playwrite VN';
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url('./assets/fonts/playwrite-vn-200.woff2') format('woff2');
+}
+
+/* Frontend spec §4. The colour values must match src/theme.ts (test/theme.test.ts). */
+@theme {
+  --font-display: 'Fraunces Variable', ui-serif, Georgia, serif;
+  --font-hand: 'Playwrite VN', cursive;
+  --color-night: #0c0a12;
+  --color-night-deep: #08070c;
+  --color-ember: #2a0f16;
+  --color-lantern: #ef3346;
+  --color-lantern-deep: #d42a3c;
+  --color-envelope-flap: #8f0c1b;
+  --color-seal: #f2c14e;
+  --color-seal-ink: #2a1a05;
+  --color-paper: #efe2cf;
+  --color-paper-soft: #b3a593;
+  --color-paper-dim: #8c7f8a;
+  --color-out: #221a21;
+  --color-error: #ff6b78;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-night font-display text-paper antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-seal);
+    outline-offset: 2px;
+  }
+  /* Sections sit under the sticky header when a link scrolls to them. */
+  section[id] {
+    scroll-margin-top: 72px;
+  }
+}
+
+/* Components sit in a layer so Tailwind utilities (md:hidden, etc.) can override them. */
+@layer components {
+  /* ── A light: one lì xì (spec §5.1). ::before is the glow layer, ::after the seal. ── */
+  .light {
+    position: relative;
+    display: inline-block;
+    flex: none;
+    width: 26px;
+    height: 34px;
+    border-radius: 4px;
+    background: var(--color-out);
+  }
+  .light[data-size='sm'] {
+    width: 14px;
+    height: 18px;
+    border-radius: 3px;
+  }
+  .light[data-size='lg'] {
+    width: 40px;
+    height: 52px;
+    border-radius: 6px;
+  }
+  .light::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(160deg, var(--color-lantern), #b0101f);
+    box-shadow:
+      0 0 16px 4px rgb(239 51 70 / 0.38),
+      0 0 44px 10px rgb(239 51 70 / 0.12);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .light::after {
+    content: '';
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    width: 22%;
+    aspect-ratio: 1;
+    translate: -50% 0;
+    border-radius: 999px;
+    background: #3a2f36;
+    transition: background-color 0.5s ease;
+  }
+  .light[data-state='lit']::before,
+  .light[data-state='pending']::before,
+  .light[data-state='home']::before {
+    opacity: 1;
+  }
+  .light[data-state='lit']::after,
+  .light[data-state='pending']::after {
+    background: var(--color-seal);
+  }
+  .light[data-state='home']::before {
+    background: linear-gradient(160deg, #f6cf62, #d39b1f);
+    box-shadow:
+      0 0 16px 4px rgb(242 193 78 / 0.34),
+      0 0 44px 10px rgb(242 193 78 / 0.11);
+  }
+  .light[data-state='home']::after {
+    background: #fff4d6;
+  }
+  .light[data-state='ghost'] {
+    background: transparent;
+    outline: 1px dashed var(--color-paper-dim);
+  }
+  .light[data-state='ghost']::after {
+    background: transparent;
+  }
+  .light[data-state='pending']::before {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .light .tip,
+  .icon-link .tip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    z-index: 10;
+    translate: -50% 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--color-paper);
+    color: var(--color-night);
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.15s,
+      translate 0.15s;
+  }
+  .light:hover .tip,
+  .light:focus-visible .tip,
+  .icon-link:hover .tip,
+  .icon-link:focus-visible .tip {
+    opacity: 1;
+    translate: -50% 0;
+  }
+
+  /* ── The large envelope on the Claim page (spec §6.4, §7). ── */
+  .envelope-xl {
+    position: relative;
+    width: 132px;
+    height: 172px;
+    margin-inline: auto;
+    transition: margin-top 0.6s ease;
+  }
+  .envelope-xl::before {
+    content: '';
+    position: absolute;
+    inset: -90px -110px;
+    background: radial-gradient(circle at 50% 45%, rgb(242 193 78 / 0.35), rgb(239 51 70 / 0.18) 35%, transparent 65%);
+    opacity: 0;
+    scale: 0.4;
+    transition:
+      opacity 0.9s ease,
+      scale 0.9s ease;
+    pointer-events: none;
+  }
+  .envelope-xl > span {
+    position: absolute;
+  }
+  .envelope-xl .slip {
+    inset: 10% 10% auto;
+    height: 66%;
+    border-radius: 6px;
+    background: var(--color-paper);
+    transition: translate 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s;
+  }
+  .envelope-xl .body {
+    inset: 0;
+    border-radius: 10px;
+    background: linear-gradient(160deg, var(--color-lantern), #b0101f);
+    box-shadow:
+      0 0 34px 8px rgb(239 51 70 / 0.44),
+      0 0 110px 30px rgb(239 51 70 / 0.15);
+    transition:
+      background 0.5s,
+      box-shadow 0.5s;
+  }
+  .envelope-xl .flap {
+    inset: 0 0 auto;
+    height: 40%;
+    border-radius: 10px 10px 0 0;
+    background: var(--color-envelope-flap);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transition: opacity 0.4s;
+  }
+  .envelope-xl .seal {
+    top: 33%;
+    left: 50%;
+    width: 22px;
+    height: 22px;
+    translate: -50% 0;
+    border-radius: 999px;
+    background: var(--color-seal);
+    box-shadow: 0 0 10px var(--color-seal);
+    transition: opacity 0.4s;
+  }
+  .envelope-xl[data-state='opening'] .body {
+    animation: pulse-big 1.6s ease-in-out infinite;
+  }
+  .envelope-xl[data-state='opened'] {
+    margin-top: 96px;
+  }
+  .envelope-xl[data-state='opened']::before {
+    opacity: 1;
+    scale: 1;
+  }
+  .envelope-xl[data-state='opened'] .slip {
+    translate: 0 -70%;
+  }
+  .envelope-xl[data-state='opened'] .flap,
+  .envelope-xl[data-state='opened'] .seal {
+    opacity: 0;
+  }
+  .envelope-xl[data-state='out'] .body {
+    background: var(--color-out);
+    box-shadow: none;
+  }
+  .envelope-xl[data-state='out'] .flap {
+    background: #1a1319;
+  }
+  .envelope-xl[data-state='out'] .seal {
+    background: #3a2f36;
+    box-shadow: none;
+  }
+
+  /* ── Icon links (spec §5.4). ── */
+  .icon-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    color: var(--color-paper);
+    transition:
+      border-color 0.2s,
+      background-color 0.2s;
+  }
+  .icon-link:hover,
+  .icon-link:focus-visible {
+    border-color: var(--color-lantern);
+    background: rgb(239 51 70 / 0.1);
+  }
+
+  /* ── Home: each section's one moment, once (spec §7). ── */
+  [data-reveal] .reveal-head {
+    opacity: 0;
+    translate: 0 14px;
+    transition:
+      opacity 0.6s ease,
+      translate 0.6s ease;
+  }
+  [data-reveal][data-in] .reveal-head {
+    opacity: 1;
+    translate: 0 0;
+  }
+  .journey .wire {
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 1.4s ease 0.2s;
+  }
+  [data-in] .journey .wire {
+    transform: scaleX(1);
+  }
+  [data-in] .journey .light::before {
+    opacity: 1;
+    transition-delay: calc(0.3s + var(--i) * 0.55s);
+  }
+  [data-in] .journey .light::after {
+    background: var(--color-seal);
+    transition-delay: calc(0.3s + var(--i) * 0.55s);
+  }
+  [data-in] .journey .light.last::before {
+    animation: lit-then-out 2.6s ease forwards 0.9s;
+  }
+  [data-in] .journey .light.last::after {
+    animation: seal-then-out 2.6s ease forwards 0.9s;
+  }
+  .veil::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgb(12 10 18 / 0), rgb(12 10 18 / 0.82));
+    transform: translateX(-100%);
+    transition: transform 1.2s ease 0.6s;
+    pointer-events: none;
+  }
+  [data-in] .veil::after {
+    transform: translateX(0);
+  }
+  .fuse {
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 2s linear 0.3s;
+  }
+  [data-in] .fuse {
+    transform: scaleX(1);
+  }
+  .chip {
+    transition:
+      border-color 0.5s,
+      box-shadow 0.5s;
+  }
+  [data-in] .chip {
+    border-color: rgb(239 51 70 / 0.6);
+    box-shadow: 0 0 18px rgb(239 51 70 / 0.19);
+    transition-delay: calc(0.25s + var(--i) * 0.22s);
+  }
+  [data-in] .cta-light::before {
+    opacity: 1;
+    transition-delay: 0.4s;
+  }
+  [data-in] .cta-light::after {
+    background: var(--color-seal);
+    transition-delay: 0.4s;
+  }
+
+  details > summary {
+    list-style: none;
+  }
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+  details > summary .plus {
+    transition: rotate 0.2s;
+  }
+  details[open] > summary .plus {
+    rotate: 45deg;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    box-shadow:
+      0 0 26px 8px rgb(239 51 70 / 0.6),
+      0 0 70px 20px rgb(239 51 70 / 0.25);
+  }
+}
+@keyframes pulse-big {
+  50% {
+    box-shadow:
+      0 0 54px 16px rgb(239 51 70 / 0.6),
+      0 0 160px 50px rgb(239 51 70 / 0.26);
+  }
+}
+@keyframes lit-then-out {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  25%,
+  70% {
+    opacity: 1;
+  }
+}
+@keyframes seal-then-out {
+  0%,
+  100% {
+    background: #3a2f36;
+  }
+  25%,
+  70% {
+    background: var(--color-seal);
+  }
+}
+
+/* Reduced motion: every animation lands on its end state at once. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+}
