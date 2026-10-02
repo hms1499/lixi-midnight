@@ -91,9 +91,9 @@ The first-pass palette (peach-blossom page, Be Vietnam Pro) is gone. The app is 
 
 ### 5.1 `Light`
 
-One lì xì. Props: `state: 'lit' | 'out' | 'home' | 'ghost' | 'pending'`, `size: 'sm' | 'md' | 'lg' | 'xl'`, `label` (accessible name, for example “Lì xì 2: 1.2 tNIGHT, waiting”).
+One lì xì. Props: `state: 'lit' | 'out' | 'home' | 'ghost' | 'pending'`, `size: 'sm' | 'md' | 'lg'`, `label` (accessible name, for example “Lì xì 2: 1.2 tNIGHT, waiting”).
 - Markup: a `span` with `role="img"` and `aria-label`. On the Dashboard it is also focusable (`tabIndex={0}`), and the tooltip shows the same label on hover and focus. It is not a button, because it does nothing.
-- The large envelope (`xl`, Claim page) adds a flap and a seal. Opening it hides the flap and seal and lets the slip rise (§7).
+- The large envelope on the Claim page is its own component, `Envelope` (states `sealed`, `opening`, `opened`, `out`), with a flap and a seal. Opening it hides the flap and seal and lets the slip rise (§7).
 - State changes animate background and glow over 500 ms.
 
 ### 5.2 Header (all pages)
@@ -102,7 +102,7 @@ One lì xì. Props: `state: 'lit' | 'out' | 'home' | 'ghost' | 'pending'`, `size
 - **Left:** logo (a small lit light, then “Lixi”), which goes to `/`.
 - **Centre:** section links “How it works”, “Privacy”, “Built on Midnight”, “FAQ”. On `/` they scroll smoothly to the section. On other pages they go to `/#how`, `/#privacy`, `/#midnight` and `/#faq`. On `/`, the link of the section in view is underlined in `lantern` (scroll spy).
 - **Right:** a “Preprod testnet” pill in `seal`, “My envelopes”, and the wallet control. The wallet control is “Connect wallet” when disconnected; when connected it is a chip with the wallet name and a shortened address, plus Disconnect.
-- **Under 768 px:** the section links and “My envelopes” fold into a menu button (an icon with the label “Menu”) that opens a panel; the pill and the wallet control stay visible.
+- **Under 768 px:** the section links and “My envelopes” fold into a menu button (an icon with the label “Menu”) that opens a panel; the wallet control stays visible. Under 640 px the “Preprod testnet” pill moves into that panel (amended 2026-10-02 after the 390-px browser check: it did not fit beside the wallet control).
 
 ### 5.3 Footer (all pages)
 
