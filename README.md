@@ -37,7 +37,21 @@ npm run deploy -w @lixi/cli                         # deploy to the devnet; --ne
 | `contract/` | `lixi.compact`, generated bindings, Merkle helper, private-state witness, simulator tests |
 | `sdk/` | Seed derivation, splits, claim links, sender vault, recovery, midnight-js wrappers, pre-checks |
 | `cli/` | Headless wallet, Node providers, deploy/smoke/sponsor scripts, devnet end-to-end tests |
+| `app/` | React app: create and share envelopes, claim links, dashboard with refund and backup |
 | `deployments/` | Public deployment records (`preprod.json`) |
+
+## Run the app
+
+The app is a static React site. It talks to the Preprod contract in `deployments/preprod.json` through your browser wallet.
+
+```bash
+npm run build -w @lixi/app && npm run preview -w @lixi/app   # http://localhost:4173, with the production CSP
+npm run dev -w @lixi/app                                     # dev server with hot reload (no CSP)
+```
+
+You need the [1AM](https://1am.xyz) wallet on Preprod, with tNIGHT from the faucet registered for DUST. To prove on your own machine instead of in the wallet, start the proof server (`docker run -p 127.0.0.1:6300:6300 midnightntwrk/proof-server:8.1.0 midnight-proof-server`) and choose "On this computer" when connecting.
+
+Fonts: Fraunces and Playwrite VN (SIL Open Font License 1.1). Icons adapted from Lucide (ISC).
 
 ## License
 

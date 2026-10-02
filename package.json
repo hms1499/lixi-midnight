@@ -11,8 +11,7 @@
     "contract",
     "sdk",
     "cli",
-    "app",
-    "spikes/s4-wallet"
+    "app"
   ],
   "scripts": {
     "compact": "npm run compact -w @lixi/contract",

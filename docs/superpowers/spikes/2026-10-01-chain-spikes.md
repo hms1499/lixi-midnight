@@ -1,6 +1,6 @@
 # Chain spikes (S1–S5), 2026-10-01
 
-Plan 2 (`docs/superpowers/plans/2026-10-01-lixi-plan-2-chain.md`) ran these spikes. S1, S2, S3 and the headless half of S5 come from the devnet suite (`npm run test:devnet -w @lixi/cli`, 19/19). S4 and the browser half of S5 were run by hand on Preprod against contract `971f70aeb5c33bcafde88471431d7e0fc3b5e1a75fc31ce9d3bc0d90499d1f61` (`deployments/preprod.json`), using the throwaway page in `spikes/s4-wallet`.
+Plan 2 (`docs/superpowers/plans/2026-10-01-lixi-plan-2-chain.md`) ran these spikes. S1, S2, S3 and the headless half of S5 come from the devnet suite (`npm run test:devnet -w @lixi/cli`, 19/19). S4 and the browser half of S5 were run by hand on Preprod against contract `971f70aeb5c33bcafde88471431d7e0fc3b5e1a75fc31ce9d3bc0d90499d1f61` (`deployments/preprod.json`), using the throwaway page in `spikes/s4-wallet` (removed in Plan 3; see git history; `app/src/chain/midnight.ts` is its successor).
 
 | ID | Question | Result | Decision |
 |---|---|---|---|

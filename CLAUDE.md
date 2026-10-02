@@ -24,6 +24,8 @@ Lixi: private red envelopes on Midnight (Midnight Buildathon entry).
 - Local proof server: Docker container `midnight-proof-server` on port 6300 (`docker start midnight-proof-server`, then `curl localhost:6300/health`).
 - Devnet: `docker compose -f devnet/compose.yml up -d --wait`. Stop `midnight-proof-server` first, because it also wants port 6300. For Preprod, start only `proof-server` from the same file.
 - Chain scripts: `npm run test:devnet -w @lixi/cli`, or `deploy`/`smoke`/`sponsor` with `-- --network <undeployed|preprod>`. They recompile the proving keys first, because `npm test` deletes them. The Preprod deployer secret lives in gitignored `cli/.env`, as `LIXI_DEPLOYER_MNEMONIC` (recovery phrase) or `LIXI_DEPLOYER_SEED` (64 hex). The first Preprod run syncs ~1.6M DUST events (~35 min with `batchUpdates: { size: 2000 }`; the SDK default of 10 takes hours). Sync state is cached in gitignored `cli/.wallet-cache/` (owner-only), so later runs are fast. Never commit or share that folder.
+- App: `npm run dev -w @lixi/app` (no CSP), or `npm run build -w @lixi/app && npm run preview -w @lixi/app` for the built site with the CSP on http://localhost:4173. Both first copy `keys/` and `zkir/` into `app/public/` (`npm run zk -w @lixi/app`), compiling the keys if `npm test` deleted them.
+- CI: `ci.yml` runs on every push (~2 min). `devnet.yml` runs only when `contract/`, `sdk/`, `cli/`, `devnet/` or the lockfile change, or by hand: `gh workflow run devnet.yml --ref <branch>`.
 
 ## Invariants (don't break)
 - `npm ls @midnight-ntwrk/onchain-runtime-v3` must show one version (3.0.0, root `overrides`). Two copies break every circuit call with `expected instance of StateValue`. After installing, run `npm dedupe`.
@@ -38,12 +40,18 @@ Lixi: private red envelopes on Midnight (Midnight Buildathon entry).
 - `claim` only reads the envelope and never writes it, so concurrent claims don't conflict.
 - Times are unix **seconds**. Amounts are `bigint` base units, and each share must fit in `Uint<64>`.
 - Secrets (the seed and share secrets) never appear in logs or error messages. Link secrets live only in the URL fragment.
+- The CSP is defined twice: `app/src/csp.ts` (meta tag in the built page) and `app/vercel.json` (header). `app/test/config.test.ts` keeps them equal; a new host the page talks to goes into both.
+- App reads use the network's public indexer (`NETWORKS`), never the wallet's, so the CSP can list every host.
+- The sender vault lives in `localStorage` (`app/src/lib/storage.ts`). Its entry is saved before `createEnvelope` is submitted, and a vault that fails to parse is only replaced by an explicit restore.
+- Pages reach the outside world only through `Services` (`app/src/services.tsx`).
+- The look is set by `docs/superpowers/specs/2026-10-02-lixi-frontend-design.md`. Colours live in `app/src/theme.ts` and `app/src/index.css`, and `app/test/theme.test.ts` keeps them equal and above WCAG AA. A light’s state always means the same thing: lit = waiting, out = opened, gold = coming home, dashed = not on chain, pulsing = in flight.
 
 ## Testing quirks
 - Devnet tests use the public genesis seed `00…01` and fresh random wallets. A `submission rejected, retrying` warning is expected now and then.
 - Tests run the real compiled contract through `LixiSimulator`. Each call builds a fresh context, so effects are per call.
 - `sim.ledger()` returns a snapshot. Take it after the calls you want to observe; a stale snapshot throws `expected a cell, received null`.
 - To control block time, set `sim.now` (unix seconds) before a call.
+- App page tests run the whole app in jsdom (`// @vitest-environment jsdom`) through `app/test/app-harness.tsx`: the real contract via `LixiSimulator`, a fake wallet, in-memory storage.
 
 ## Git
 - Work on `feat/*` branches. When CI is green, fast-forward merge into `main`; no PRs.
