@@ -1,0 +1,43 @@
+name: Devnet
+
+# The devnet end-to-end suite takes ~8 minutes, so it runs only when chain code changes, or by hand
+# (Actions → Devnet → Run workflow).
+on:
+  push:
+    paths:
+      - 'contract/**'
+      - 'sdk/**'
+      - 'cli/**'
+      - 'devnet/**'
+      - 'package-lock.json'
+      - '.github/workflows/devnet.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: devnet-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  devnet:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install Compact toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/download/compact-v0.5.3/compact-installer.sh | COMPACT_NO_MODIFY_PATH=1 sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.compact/bin" >> "$GITHUB_PATH"
+      - run: compact update 0.31.1
+      - run: npm ci
+      - name: Start the local devnet
+        run: docker compose -f devnet/compose.yml up -d --wait
+      - name: Devnet end-to-end (deploy, relinquish, create, concurrent and sponsored claims, refund)
+        run: npm run test:devnet -w @lixi/cli
+      - name: Devnet logs on failure
+        if: failure()
+        run: docker compose -f devnet/compose.yml logs --tail 200
