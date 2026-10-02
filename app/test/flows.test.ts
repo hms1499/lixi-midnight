@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveEnvelope, linksFor, type ClaimLink } from '@lixi/sdk';
+import { backupString, deriveEnvelope, linksFor, type ClaimLink } from '@lixi/sdk';
 import { createEnvelope, freeIndex, type CreateForm } from '../src/flows/create';
 import { claimWithLink, previewClaim } from '../src/flows/claim';
 import { forgetEnvelope, refundEnvelope, restoreVault } from '../src/flows/manage';
@@ -82,6 +82,13 @@ describe('createEnvelope', () => {
     await create({ total: 5_000_000n, count: 4, split: 'random' });
     const sealed = store.load()!.envelopes.find((e) => e.index === index)!;
     expect(deriveEnvelope(store.load()!.seed, sealed).shares).toEqual(preview.shares);
+  });
+
+  it('refuses to seal another index than the one previewed, before touching the vault', async () => {
+    const { sim, chain, store, refundAddress } = setup();
+    await expect(createEnvelope(chain, store, form(), refundAddress, sim.now, 1)).rejects.toThrow('amounts changed');
+    expect(store.load()!.envelopes).toHaveLength(0);
+    expect(chain.calls).toEqual([]);
   });
 
   it('refuses expiries outside the contract bounds before touching the vault', async () => {
@@ -220,6 +227,39 @@ describe('restoreVault', () => {
       store.load()!.envelopes.map(({ index, count, kind, split }) => ({ index, count, kind, split })),
     );
     expect(fresh.backedUp()).toBe(true);
+  });
+
+  it('finds an envelope sealed after five failed attempts', async () => {
+    const { chain, store, create } = setup();
+    const realCreate = chain.create;
+    chain.create = async () => {
+      throw new Error('Rejected');
+    };
+    for (let i = 0; i < 5; i++) await expect(create()).rejects.toThrow('Rejected');
+    chain.create = realCreate;
+    await create();
+    const fresh = localVaultStore(new MemoryStorage());
+    expect(await restoreVault(chain, fresh, backupString(store.load()!), { replaceDifferent: false })).toEqual({
+      ok: true,
+      found: 1,
+    });
+    expect(fresh.load()!.envelopes.map((e) => e.index)).toEqual([5]);
+  });
+
+  it('restoring the same string keeps the envelopes the chain does not know', async () => {
+    const { chain, store, create } = setup();
+    await create();
+    const realCreate = chain.create;
+    chain.create = async () => {
+      throw new Error('Rejected');
+    };
+    await expect(create()).rejects.toThrow('Rejected'); // index 1 stays in the vault as "not on chain"
+    chain.create = realCreate;
+    expect(await restoreVault(chain, store, backupString(store.load()!), { replaceDifferent: false })).toEqual({
+      ok: true,
+      found: 1,
+    });
+    expect(store.load()!.envelopes.map((e) => e.index)).toEqual([0, 1]);
   });
 
   it('will not silently replace a vault that holds envelopes under another seed', async () => {

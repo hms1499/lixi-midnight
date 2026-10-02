@@ -173,10 +173,15 @@ export const Create = () => {
     setStatus({ sealing: true });
     try {
       const form = { total, count, kind, split: effectiveSplit, durationSeconds: duration };
-      const { id } = await createEnvelope(wallet.chain, store, form, wallet.recipient, services.now());
+      const { id } = await createEnvelope(wallet.chain, store, form, wallet.recipient, services.now(), index);
       navigate(`/share/${toHex(id)}`);
     } catch (error) {
       setStatus({ sealing: false, error: friendlyError(error) });
+      // A failed seal keeps its vault entry and its index, so the preview moves on to the next free one.
+      services.reader
+        .readLedger()
+        .then((ledger) => setIndex(freeIndex(store.load() ?? vault.vault, ledger)))
+        .catch(() => undefined);
     }
   };
 

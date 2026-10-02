@@ -31,6 +31,7 @@ export const friendlyError = (error: unknown): string => {
   if (text === 'corrupt vault')
     return 'Your saved Lixi data cannot be read. Restore it from your backup string on the Dashboard.';
   if (text === 'expiry out of range') return 'That expiry is outside what the contract allows. Pick another one.';
+  if (text === 'amounts changed') return 'The amounts just changed. Check them, then seal again.';
   if (/syncing/i.test(text))
     return 'Your wallet is still syncing with the network. Open it, wait until the sync finishes (a new wallet can take a while), then try again.';
   // 1AM allows one pending transaction at a time; its own message says what to do (spike S4).

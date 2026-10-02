@@ -45,7 +45,8 @@ export const freeIndex = (vault: SenderVault, ledger: Pick<Ledger, 'envelopes'>)
 
 /**
  * Creates an envelope. The vault entry is saved *before* the transaction, so a closed tab or a
- * failed submission never loses the record of what was (maybe) put on chain.
+ * failed submission never loses the record of what was (maybe) put on chain. Given the index the
+ * page previewed, it refuses to seal any other ('amounts changed'), so the preview is what gets sealed.
  */
 export const createEnvelope = async (
   chain: LixiChain,
@@ -53,6 +54,7 @@ export const createEnvelope = async (
   form: CreateForm,
   refundAddress: Uint8Array,
   now: number,
+  previewedIndex?: number,
 ): Promise<{ id: Uint8Array; txId: string }> => {
   const ledger = await chain.readLedger();
   const min = Number(ledger.minDuration) + DURATION_MARGIN_SECONDS;
@@ -66,6 +68,7 @@ export const createEnvelope = async (
     kind: form.kind,
     split: form.split,
   };
+  if (previewedIndex !== undefined && spec.index !== previewedIndex) throw new Error('amounts changed');
   const d = deriveEnvelope(vault.seed, spec); // throws on a bad count, total or group + random
   const expiry = BigInt(now + form.durationSeconds);
   const next = addEnvelope(vault, { ...spec, expiry, labels: [] });

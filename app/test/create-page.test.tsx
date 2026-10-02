@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { backupString, deriveEnvelope } from '@lixi/sdk';
 import { formatNight } from '../src/lib/units';
@@ -57,6 +57,33 @@ describe('create and share', () => {
       .map((s) => s.amount);
     expect(expected.reduce((a, b) => a + b, 0n)).toBe(10_000_000n);
     expect(shown).toEqual(expected.map(formatNight));
+  });
+
+  it('after a failed seal, previews the next free index and seals exactly that', async () => {
+    const user = userEvent.setup();
+    const { show, store, chain } = setup();
+    const seed = new Uint8Array(32).fill(7);
+    store.save({ seed, envelopes: [] });
+    store.setBackedUp(true);
+    const realCreate = chain.create;
+    chain.create = async () => {
+      chain.create = realCreate;
+      throw new Error('Rejected');
+    };
+    const amountsAt = (index: number) =>
+      deriveEnvelope(seed, { index, total: 10_000_000n, count: 4, kind: 'personal', split: 'random' })
+        .shares.slice(0, 4)
+        .map((s) => formatNight(s.amount));
+    const shown = () =>
+      Array.from(screen.getByRole('img', { name: '4 lì xì' }).querySelectorAll('span.block')).map((s) => s.textContent);
+    show('/create');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await user.click(await screen.findByRole('button', { name: 'Seal 4 lì xì' }));
+    await screen.findByText(/^Rejected/);
+    await waitFor(() => expect(shown()).toEqual(amountsAt(1)));
+    await user.click(screen.getByRole('button', { name: 'Seal 4 lì xì' }));
+    await screen.findByRole('heading', { name: '4 lì xì, ready to hand out' });
+    expect(store.load()!.envelopes.map((e) => e.index)).toEqual([0, 1]);
   });
 
   it('a group link forces equal amounts', async () => {

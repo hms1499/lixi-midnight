@@ -1,6 +1,7 @@
 import {
   checkRefund,
   deriveEnvelope,
+  nextIndex,
   privateStateOf,
   recoverVault,
   seedFromBackup,
@@ -39,9 +40,13 @@ export type RestoreResult =
 
 const sameBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);
 
+/** Empty indices a restore scans past. Every failed seal keeps its index, so a run of them leaves a gap on chain. */
+const RESTORE_GAP = 64;
+
 /**
- * Rebuilds the vault from a backup string by scanning the chain (spec §4.4). Replacing a vault that
- * holds envelopes under a *different* seed needs `replaceDifferent`, because that seed is then gone.
+ * Rebuilds the vault from a backup string by scanning the chain (spec §4.4). Restoring the same seed
+ * keeps the entries the scan cannot see (never on chain, or a split it cannot match). Replacing a vault
+ * that holds envelopes under a *different* seed needs `replaceDifferent`, because that seed is then gone.
  * An unreadable saved vault may always be replaced: restoring is the way out of 'corrupt vault'.
  */
 export const restoreVault = async (
@@ -65,9 +70,15 @@ export const restoreVault = async (
   if (current && current.envelopes.length > 0 && !sameBytes(current.seed, seed) && !options.replaceDifferent) {
     return { ok: false, reason: 'different seed' };
   }
+  const kept = current && sameBytes(current.seed, seed) ? current.envelopes : [];
   const ledger = await reader.readLedger();
-  const vault = recoverVault(seed, (id) => (ledger.envelopes.member(id) ? ledger.envelopes.lookup(id) : undefined));
-  store.save(vault);
+  const found = recoverVault(
+    seed,
+    (id) => (ledger.envelopes.member(id) ? ledger.envelopes.lookup(id) : undefined),
+    RESTORE_GAP + nextIndex({ seed, envelopes: kept }),
+  );
+  const unseen = kept.filter((e) => !found.envelopes.some((f) => f.index === e.index));
+  store.save({ seed, envelopes: [...found.envelopes, ...unseen].sort((a, b) => a.index - b.index) });
   store.setBackedUp(true);
-  return { ok: true, found: vault.envelopes.length };
+  return { ok: true, found: found.envelopes.length };
 };

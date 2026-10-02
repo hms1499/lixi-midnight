@@ -64,6 +64,7 @@ describe('friendlyError', () => {
       /still syncing/,
     );
     expect(friendlyError(new Error('proof server unreachable'))).toMatch(/docker run/);
+    expect(friendlyError(new Error('amounts changed'))).toBe('The amounts just changed. Check them, then seal again.');
     const pending = 'A transaction is already pending. Wait for it to confirm or expire before requesting another.';
     expect(friendlyError(new Error(pending))).toBe(pending);
     expect(friendlyError(new Error('boom'))).toBe(
