@@ -1,3 +1,5 @@
+import { redactUrl } from '@lixi/sdk/network';
+
 export const messageOf = (error: unknown): string =>
   error instanceof Error
     ? error.message
@@ -23,7 +25,7 @@ export const PROOF_SERVER_COMMAND =
  */
 export const friendlyError = (error: unknown): string => {
   const code = connectorCode(error);
-  const text = messageOf(error);
+  const text = redactUrl(messageOf(error));
   // Lace reports a locked wallet with the same code as a declined request.
   if (code === 'Rejected' && /locked/i.test(text)) return 'Your wallet is locked. Unlock it, then try again.';
   if (code === 'Rejected' || code === 'PermissionRejected') return 'You declined the request in your wallet.';

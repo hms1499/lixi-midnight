@@ -103,6 +103,14 @@ describe('balanceOrExplain', () => {
 });
 
 describe('friendlyError', () => {
+  it('never shows a Blockfrost project id from an error that quotes an endpoint', () => {
+    const shown = friendlyError(
+      new Error('request to https://midnight-preprod.blockfrost.io/api/v0?project_id=preprodSECRET failed'),
+    );
+    expect(shown).not.toContain('preprodSECRET');
+    expect(shown).toContain('project_id=<redacted>');
+  });
+
   it('turns connector, prover and wallet errors into instructions', () => {
     const connectorError = (code: string) => ({ type: 'DAppConnectorAPIError', code, reason: 'x', message: 'x' });
     expect(friendlyError(connectorError('Rejected'))).toBe('You declined the request in your wallet.');

@@ -34,3 +34,5 @@ jobs:
         run: npm run compact
       - name: Build the app
         run: npm run build -w @lixi/app
+        env:
+          VITE_BLOCKFROST_PROJECT_ID: ${{ secrets.VITE_BLOCKFROST_PROJECT_ID }}

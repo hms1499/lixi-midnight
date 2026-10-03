@@ -8,6 +8,7 @@ import { fromHex, toHex } from '@midnight-ntwrk/midnight-js-utils';
 import {
   NETWORKS,
   claimTx,
+  networkConfig,
   createEnvelopeTx,
   memoryPrivateStateProvider,
   readLedger,
@@ -26,7 +27,7 @@ type WebSocketCtor = Parameters<typeof indexerPublicDataProvider>[2];
  * any wallet connects, and the CSP can name every host the page talks to.
  */
 const publicData = (config: AppConfig) => {
-  const n = NETWORKS[config.network];
+  const n = networkConfig(config.network, config.projectId);
   // The provider is typed against the `ws` package; the browser's WebSocket is what it needs here.
   return indexerPublicDataProvider(n.indexer, n.indexerWS, WebSocket as unknown as WebSocketCtor);
 };

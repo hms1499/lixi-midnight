@@ -2,7 +2,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import wasm from 'vite-plugin-wasm';
-import type { NetworkName } from '@lixi/sdk/network';
+import { appConfig } from './src/config.ts';
 import { cspFor } from './src/csp.ts';
 
 /** Adds the CSP meta tag to the built page only: the dev server needs inline scripts for hot reload. */
@@ -16,7 +16,8 @@ const csp = (policy: string): Plugin => ({
 
 // Target esnext keeps top-level await native, which the ledger WASM bindings need (spike S4).
 export default defineConfig(({ mode }) => {
-  const network = (loadEnv(mode, process.cwd(), 'VITE_').VITE_LIXI_NETWORK ?? 'preprod') as NetworkName;
+  // Throws with the variable to set when the Blockfrost project id is missing, before anything is served or built.
+  const { network } = appConfig(loadEnv(mode, process.cwd(), 'VITE_'));
   return {
     plugins: [react(), tailwindcss(), wasm(), csp(cspFor(network))],
     // The Midnight libraries make one ~1 MB chunk (plus ~11 MB of WASM); nothing to gain from splitting it.
