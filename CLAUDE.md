@@ -23,7 +23,7 @@ Lixi: private red envelopes on Midnight (Midnight Buildathon entry).
 - `contract/src/managed/` is generated and gitignored. Never edit it.
 - Local proof server: Docker container `midnight-proof-server` on port 6300 (`docker start midnight-proof-server`, then `curl localhost:6300/health`).
 - Devnet: `docker compose -f devnet/compose.yml up -d --wait`. Stop `midnight-proof-server` first, because it also wants port 6300. For Preprod, start only `proof-server` from the same file.
-- Chain scripts: `npm run test:devnet -w @lixi/cli`, or `deploy`/`smoke`/`sponsor` with `-- --network <undeployed|preprod>`. They recompile the proving keys first, because `npm test` deletes them. The Preprod deployer secret lives in gitignored `cli/.env`, as `LIXI_DEPLOYER_MNEMONIC` (recovery phrase) or `LIXI_DEPLOYER_SEED` (64 hex). The first Preprod run syncs ~1.6M DUST events (~35 min with `batchUpdates: { size: 2000 }`; the SDK default of 10 takes hours). Sync state is cached in gitignored `cli/.wallet-cache/` (owner-only), so later runs are fast. Never commit or share that folder.
+- Chain scripts: `npm run test:devnet -w @lixi/cli`, or `deploy`/`smoke`/`sponsor` with `-- --network <undeployed|preprod>`. They recompile the proving keys first, because `npm test` deletes them. The Preprod deployer secret lives in gitignored `cli/.env`, as `LIXI_DEPLOYER_MNEMONIC` (recovery phrase) or `LIXI_DEPLOYER_SEED` (64 hex), next to `BLOCKFROST_PROJECT_ID`. The first Preprod run syncs ~1.6M DUST events from genesis (~67 min on Blockfrost with `batchUpdates: { size: 2000 }`; the SDK default of 10 takes hours). Sync state is cached in gitignored `cli/.wallet-cache/` (owner-only, one file per indexer host), so later runs are fast. Never commit or share that folder.
 - App: `npm run dev -w @lixi/app` (no CSP), or `npm run build -w @lixi/app && npm run preview -w @lixi/app` for the built site with the CSP on http://localhost:4173. Both first copy `keys/` and `zkir/` into `app/public/` (`npm run zk -w @lixi/app`), compiling the keys if `npm test` deleted them.
 - CI: `ci.yml` runs on every push (~2 min). `devnet.yml` runs only when `contract/`, `sdk/`, `cli/`, `devnet/` or the lockfile change, or by hand: `gh workflow run devnet.yml --ref <branch>`.
 
@@ -41,7 +41,12 @@ Lixi: private red envelopes on Midnight (Midnight Buildathon entry).
 - Times are unix **seconds**. Amounts are `bigint` base units, and each share must fit in `Uint<64>`.
 - Secrets (the seed and share secrets) never appear in logs or error messages. Link secrets live only in the URL fragment.
 - The CSP is defined twice: `app/src/csp.ts` (meta tag in the built page) and `app/vercel.json` (header). `app/test/config.test.ts` keeps them equal; a new host the page talks to goes into both.
-- App reads use the network's public indexer (`NETWORKS`), never the wallet's, so the CSP can list every host.
+- Preprod goes through Blockfrost, because Midnight is shutting down its official Preprod indexer and RPC (midnight-wallet#781).
+  - `NETWORKS.preprod` holds the bare URLs, which the CSP lists. `networkConfig` adds `?project_id=`.
+  - The CLI reads `BLOCKFROST_PROJECT_ID` from `cli/.env`. The app reads `VITE_BLOCKFROST_PROJECT_ID` at build time from gitignored `app/.env.local`, or from the CI secret of the same name. Without it, the build and the dev server stop. The id ships in the page.
+  - Never log or print an endpoint URL, because it carries the id. Pass error text through `redactUrl`.
+  - App reads never use the wallet's indexer, so the CSP can list every host.
+  - Wallet sync cursors are indexer ids, so a sync cache is valid only on the indexer that wrote it.
 - The sender vault lives in `localStorage` (`app/src/lib/storage.ts`). Its entry is saved before `createEnvelope` is submitted, and a vault that fails to parse is only replaced by an explicit restore.
 - Pages reach the outside world only through `Services` (`app/src/services.tsx`).
 - The look is set by `docs/superpowers/specs/2026-10-02-lixi-frontend-design.md`. Colours live in `app/src/theme.ts` and `app/src/index.css`, and `app/test/theme.test.ts` keeps them equal and above WCAG AA. A light’s state always means the same thing: lit = waiting, out = opened, gold = coming home, dashed = not on chain, pulsing = in flight.

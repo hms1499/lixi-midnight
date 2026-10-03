@@ -77,3 +77,22 @@ What the app now does about it:
   - This matches [servicedesk#194](https://github.com/midnightntwrk/servicedesk/issues/194) (facade 4.1.0, dust 4.2.0; our versions) and [midnight-wallet#784](https://github.com/midnightntwrk/midnight-wallet/issues/784).
   - A 4-min-old cache restored and transacted fine.
   - It is not root-caused. Re-test when the wallet SDK moves past these versions.
+
+## Move to Blockfrost (Preprod, 2026-10-03)
+
+Midnight is about to shut down the official Preprod indexer and RPC (`midnight-wallet#781`, maintainer comment of 2026-10-02). Mainnet's were shut down on 2026-09-30. Lixi now reads Preprod and runs its chain scripts through Blockfrost (plan `docs/superpowers/plans/2026-10-03-lixi-blockfrost.md`).
+
+| Step | Result | Tx / note |
+|---|---|---|
+| Smoke against the official indexer, restored cache | **Failed:** node `1010: Custom error: 170` (`InvalidDustSpendProof`) | `smoke.ts` built the fee before the restored wallet had synced. It now waits, as `deploy` and `sponsor` already did. |
+| Same, after waiting for sync | **Failed:** `could not balance dust`. The wallet saw 4996 tNIGHT, registered, but 0 DUST coins. | The cached official-indexer DUST state was broken. |
+| Genesis sync of the same wallet on Blockfrost | 35 min. 1 DUST coin, available. | It confirms the cache was the fault. That cache was deleted; caches are now keyed by indexer host. |
+| Devnet suite after the change | 24/24 | The devnet needs no token. |
+| Smoke on Blockfrost: create 2 × 2 tNIGHT, claim both | **Passed**, with two transactions back to back and no extra wait | create `003b6c66…30df` (block 2812825), claims `00d033df…d43a` (2812830, 1,779,816) and `0030930d…14b2` (2812835, 220,184), all SUCCESS |
+| Built site (`vite preview`, CSP on) reads a link | **Passed:** "1 tNIGHT is sealed inside" | Console clean, no CSP violation. The page talks only to `midnight-preprod.blockfrost.io`. |
+
+midnight-js returns the 33-byte transaction *identifier*. The indexer finds it with `transactions(offset: { identifier })`, not with `hash`.
+
+What this means for the wallets in Task 11:
+- 1AM's `DUST_SYNC_STALE` and Lace's DUST balance of 0 are consistent with the same indexer change. Their wallets run their own sync, so only their vendors can fix them.
+- Unconfirmed.
