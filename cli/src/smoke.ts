@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import {
-  NETWORKS,
   addEnvelope,
   checkClaim,
   claimTx,
@@ -18,6 +17,7 @@ import {
 } from '@lixi/sdk';
 import { nodeProviders } from './providers.js';
 import { startDeployer } from './deployer.js';
+import { cliNetwork } from './network.js';
 
 /**
  * Smoke test against a deployed contract: create a two-share envelope, then claim both shares back
@@ -25,7 +25,7 @@ import { startDeployer } from './deployer.js';
  */
 const { values } = parseArgs({ options: { network: { type: 'string', default: 'undeployed' } } });
 const network = values.network as NetworkName;
-const config = NETWORKS[network];
+const config = cliNetwork(network);
 const { contractAddress } = JSON.parse(
   readFileSync(fileURLToPath(new URL(`../../deployments/${network}.json`, import.meta.url)), 'utf8'),
 ) as { contractAddress: string };
@@ -33,6 +33,8 @@ const { contractAddress } = JSON.parse(
 setNetworkId(config.networkId);
 const wallet = await startDeployer(network);
 try {
+  // A wallet restored from the sync cache must catch up before balancing, as deploy does.
+  await wallet.waitForFeeSync();
   const providers = nodeProviders(config, wallet);
   const me = await wallet.userAddress();
   const spec = { index: 0, total: 2_000_000n, count: 2, kind: 'personal', split: 'random' } as const;

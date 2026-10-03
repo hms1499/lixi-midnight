@@ -5,12 +5,15 @@ import { dirname, join } from 'node:path';
 export type WalletCache = { readonly shielded: string; readonly unshielded: string; readonly dust: string };
 
 /**
- * One cache file per network and wallet, named from the public address. The contents can include
- * key material, so the file is owner-only and lives in a gitignored directory.
+ * One cache file per network, indexer and wallet. Sync cursors are the indexer's own event ids, so a
+ * cache written against one indexer replays the wrong events on another (midnight-wallet#781). The
+ * name holds the indexer's host, never its URL, which carries the Blockfrost project id. The rest of
+ * the name comes from the public address. The contents can include key material, so the file is
+ * owner-only and lives in a gitignored directory.
  */
-export const cacheFileFor = (dir: string, network: string, bech32Address: string): string => {
+export const cacheFileFor = (dir: string, network: string, indexerUrl: string, bech32Address: string): string => {
   const data = bech32Address.slice(bech32Address.lastIndexOf('1') + 1);
-  return join(dir, `${network}-${data.slice(0, 24)}.json`);
+  return join(dir, `${network}-${new URL(indexerUrl).host}-${data.slice(0, 24)}.json`);
 };
 
 export const readWalletCache = (file: string): WalletCache | undefined => {

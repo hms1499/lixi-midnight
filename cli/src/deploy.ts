@@ -2,9 +2,10 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
-import { NETWORKS, deployLixi, readLedger, relinquishAuthority, type NetworkName } from '@lixi/sdk';
+import { deployLixi, readLedger, relinquishAuthority, type NetworkName } from '@lixi/sdk';
 import { nodeProviders } from './providers.js';
 import { startDeployer } from './deployer.js';
+import { cliNetwork } from './network.js';
 
 const DAY = 86400n;
 /** Spec §3.4: minDuration 60 s on the devnet, 3600 s on Preprod; maxDuration 30 days. */
@@ -16,8 +17,7 @@ const DEPLOYMENTS_DIR = fileURLToPath(new URL('../../deployments/', import.meta.
 
 const { values } = parseArgs({ options: { network: { type: 'string', default: 'undeployed' } } });
 const network = values.network as NetworkName;
-if (!(network in NETWORKS)) throw new Error(`unknown network ${network}; use undeployed or preprod`);
-const config = NETWORKS[network];
+const config = cliNetwork(network);
 
 setNetworkId(config.networkId);
 const wallet = await startDeployer(network);

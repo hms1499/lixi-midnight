@@ -8,9 +8,17 @@ const dir = () => mkdtempSync(join(tmpdir(), 'lixi-cache-'));
 const STATE = { shielded: 's', unshielded: 'u', dust: 'd' };
 
 describe('wallet sync cache', () => {
-  it('names the file by network and address, never by secret', () => {
-    expect(cacheFileFor('/c', 'preprod', 'mn_addr_preprod1mx4lng3nm3wkn0jejmevfsywzf2xd5')).toBe(
-      '/c/preprod-mx4lng3nm3wkn0jejmevfsyw.json',
+  const ADDR = 'mn_addr_preprod1mx4lng3nm3wkn0jejmevfsywzf2xd5';
+
+  it('names the file by network, indexer host and address, never by secret or project id', () => {
+    expect(
+      cacheFileFor('/c', 'preprod', 'https://midnight-preprod.blockfrost.io/api/v0?project_id=preprodSECRET', ADDR),
+    ).toBe('/c/preprod-midnight-preprod.blockfrost.io-mx4lng3nm3wkn0jejmevfsyw.json');
+  });
+
+  it('keeps caches from different indexers apart, because sync cursors are indexer ids', () => {
+    expect(cacheFileFor('/c', 'preprod', 'https://indexer.preprod.midnight.network/api/v4/graphql', ADDR)).not.toBe(
+      cacheFileFor('/c', 'preprod', 'https://midnight-preprod.blockfrost.io/api/v0', ADDR),
     );
   });
 

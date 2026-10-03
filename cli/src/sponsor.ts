@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
-import { NETWORKS, type NetworkName } from '@lixi/sdk';
+import { type NetworkName } from '@lixi/sdk';
 import { startDeployer } from './deployer.js';
+import { cliNetwork } from './network.js';
 
 /**
  * Pays the DUST fee for a claim a recipient proved and bound in the browser (spike S5).
@@ -13,7 +14,7 @@ const { values, positionals } = parseArgs({
   options: { network: { type: 'string', default: 'undeployed' } },
 });
 const network = values.network as NetworkName;
-const config = NETWORKS[network];
+const config = cliNetwork(network);
 if (positionals.length !== 1) throw new Error('pass the file that holds the transaction hex');
 
 setNetworkId(config.networkId);

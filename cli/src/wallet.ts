@@ -130,8 +130,9 @@ export class HeadlessWallet implements WalletProvider, MidnightProvider {
   /**
    * Waits until the unshielded and DUST sub-wallets have synced, which is all Lixi needs, and logs
    * progress every 30 s. Shielded sync is not awaited: on Preprod it replays the whole chain history.
+   * The default timeout covers a sync from genesis: ~67 min for ~1.58M DUST events on Blockfrost.
    */
-  waitForFeeSync(timeoutMs = 60 * 60_000, log: (line: string) => void = console.log): Promise<FacadeState> {
+  waitForFeeSync(timeoutMs = 2 * 60 * 60_000, log: (line: string) => void = console.log): Promise<FacadeState> {
     const progress = this.facade
       .state()
       .pipe(Rx.throttleTime(30_000))
