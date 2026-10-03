@@ -34,5 +34,6 @@ jobs:
         run: npm run compact
       - name: Build the app
         run: npm run build -w @lixi/app
+        # The build only needs an id to pass its check; CI makes no network calls and discards dist/.
         env:
-          VITE_BLOCKFROST_PROJECT_ID: ${{ secrets.VITE_BLOCKFROST_PROJECT_ID }}
+          VITE_BLOCKFROST_PROJECT_ID: ci-build-check
