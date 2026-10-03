@@ -4,6 +4,10 @@ import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { type NetworkName } from '@lixi/sdk';
 import { startDeployer } from './deployer.js';
 import { cliNetwork } from './network.js';
+import { redactOutput } from './redact-output.js';
+
+// Endpoint URLs carry the Blockfrost project id; keep it out of everything this script prints.
+redactOutput();
 
 /**
  * Pays the DUST fee for a claim a recipient proved and bound in the browser (spike S5).

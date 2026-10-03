@@ -6,6 +6,10 @@ import { deployLixi, readLedger, relinquishAuthority, type NetworkName } from '@
 import { nodeProviders } from './providers.js';
 import { startDeployer } from './deployer.js';
 import { cliNetwork } from './network.js';
+import { redactOutput } from './redact-output.js';
+
+// Endpoint URLs carry the Blockfrost project id; keep it out of everything this script prints.
+redactOutput();
 
 const DAY = 86400n;
 /** Spec §3.4: minDuration 60 s on the devnet, 3600 s on Preprod; maxDuration 30 days. */

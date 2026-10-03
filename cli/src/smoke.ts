@@ -18,6 +18,10 @@ import {
 import { nodeProviders } from './providers.js';
 import { startDeployer } from './deployer.js';
 import { cliNetwork } from './network.js';
+import { redactOutput } from './redact-output.js';
+
+// Endpoint URLs carry the Blockfrost project id; keep it out of everything this script prints.
+redactOutput();
 
 /**
  * Smoke test against a deployed contract: create a two-share envelope, then claim both shares back

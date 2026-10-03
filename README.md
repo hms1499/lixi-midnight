@@ -29,8 +29,15 @@ Chain work needs Docker:
 ```bash
 docker compose -f devnet/compose.yml up -d --wait   # local node, indexer, proof server
 npm run test:devnet -w @lixi/cli                    # deploy → claims → sponsored claim → refund (~7 min)
-npm run deploy -w @lixi/cli                         # deploy to the devnet; --network preprod needs a deployer secret in cli/.env
+npm run deploy -w @lixi/cli                         # deploy to the devnet; --network preprod needs cli/.env (below)
 ```
+
+Preprod goes through [Blockfrost](https://blockfrost.io), because Midnight is shutting down its own Preprod indexer and RPC. Create a free Blockfrost project for the **Midnight Preprod** network and copy its project id. Then:
+
+- **Chain scripts** (`deploy`, `smoke`, `sponsor` with `-- --network preprod`): put `BLOCKFROST_PROJECT_ID=<id>` in `cli/.env`, next to the deployer secret (`LIXI_DEPLOYER_MNEMONIC` or `LIXI_DEPLOYER_SEED`). The first run syncs the wallet from genesis (~35–70 min).
+- **The app**: put `VITE_BLOCKFROST_PROJECT_ID=<id>` in `app/.env.local`. Without it, `dev`, `build` and `preview` stop with a message naming that variable. The id ends up in the built page, as any browser-side Blockfrost id does, so a separate project for the app keeps the CLI's quota apart. A Vercel deploy needs the same variable in the project's environment.
+
+Both files are gitignored.
 
 | Package | What it holds |
 |---|---|
@@ -42,7 +49,7 @@ npm run deploy -w @lixi/cli                         # deploy to the devnet; --ne
 
 ## Run the app
 
-The app is a static React site. It talks to the Preprod contract in `deployments/preprod.json` through your browser wallet.
+The app is a static React site. It talks to the Preprod contract in `deployments/preprod.json` through your browser wallet, and reads the chain through Blockfrost. Set `VITE_BLOCKFROST_PROJECT_ID` in `app/.env.local` first (see above).
 
 ```bash
 npm run build -w @lixi/app && npm run preview -w @lixi/app   # http://localhost:4173, with the production CSP
