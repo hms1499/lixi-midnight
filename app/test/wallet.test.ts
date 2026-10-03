@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ConnectedAPI, InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
 import { balanceOrExplain, connectWallet, detectWallets, retryingOnce } from '../src/wallet/connector';
 import { friendlyError } from '../src/wallet/errors';
+import { feeNote, feeWarnings, readBalances } from '../src/wallet/balances';
 
 const initial = (over: Partial<InitialAPI> = {}): InitialAPI => ({
   rdns: 'xyz.1am',
@@ -99,6 +100,64 @@ describe('balanceOrExplain', () => {
   it('keeps the wallet’s own error when it has DUST', async () => {
     const failing = wallet(() => Promise.reject(new Error('node said no')), 5n);
     await expect(balanceOrExplain(failing, '00')).rejects.toThrow('node said no');
+  });
+});
+
+describe('readBalances', () => {
+  const NIGHT = '0'.repeat(64);
+  const api = (night: Record<string, bigint>, dust: bigint) =>
+    ({
+      getUnshieldedBalances: async () => night,
+      getDustBalance: async () => ({ balance: dust, cap: dust * 5n }),
+    }) as unknown as ConnectedAPI;
+
+  it('reads tNIGHT under the native token type and the DUST balance', async () => {
+    expect(await readBalances(api({ [NIGHT]: 4_996_000_000n, ['ab'.repeat(32)]: 7n }, 5n))).toEqual({
+      night: 4_996_000_000n,
+      dust: 5n,
+    });
+    expect(await readBalances(api({}, 0n))).toEqual({ night: 0n, dust: 0n });
+  });
+
+  it('gives no balances when the wallet cannot answer, rather than an error', async () => {
+    const failing = {
+      getUnshieldedBalances: async () => ({}),
+      getDustBalance: async () => Promise.reject(new Error('x')),
+    };
+    expect(await readBalances(failing as unknown as ConnectedAPI)).toBeUndefined();
+    expect(await readBalances({} as ConnectedAPI)).toBeUndefined();
+  });
+});
+
+describe('feeWarnings', () => {
+  const lace = (night: bigint, dust: bigint) => ({ name: 'Lace', balances: { night, dust } });
+
+  it('warns a wallet that pays its own fees when it shows no DUST', () => {
+    expect(feeWarnings(lace(10_000_000n, 0n))).toEqual([
+      'Your wallet shows 0 DUST, so it may not be able to pay the fee. Designate NIGHT to generate DUST (in Lace: NIGHT, then Generate DUST), then try again.',
+    ]);
+    expect(feeWarnings(lace(10_000_000n, 1n))).toEqual([]);
+  });
+
+  it('never warns 1AM about DUST, because its sponsor pays the fee', () => {
+    expect(feeWarnings({ name: '1AM', balances: { night: 0n, dust: 0n } })).toEqual([]);
+  });
+
+  it('warns when the wallet holds less tNIGHT than the envelope needs', () => {
+    expect(feeWarnings(lace(2_500_000n, 1n), 3_000_000n)).toEqual([
+      'Your wallet shows 2.5 tNIGHT, less than the 3 tNIGHT this envelope needs.',
+    ]);
+    expect(feeWarnings({ name: '1AM', balances: { night: 1n, dust: 0n } }, 3_000_000n)).toHaveLength(1);
+    expect(feeWarnings(lace(3_000_000n, 1n), 3_000_000n)).toEqual([]);
+  });
+
+  it('says nothing when the balances are unknown', () => {
+    expect(feeWarnings({ name: 'Lace' }, 3_000_000n)).toEqual([]);
+  });
+
+  it('tells a 1AM user who pays the fee, and has nothing to say to other wallets', () => {
+    expect(feeNote('1AM')).toBe('Fees are paid by 1AM, so your wallet needs no DUST.');
+    expect(feeNote('Lace')).toBeUndefined();
   });
 });
 

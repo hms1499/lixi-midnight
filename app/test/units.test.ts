@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatNight, parseNight } from '../src/lib/units';
+import { formatBalanceDust, formatBalanceNight, formatNight, parseNight } from '../src/lib/units';
 import { formatRelative } from '../src/lib/time';
 
 describe('tNIGHT units', () => {
@@ -20,6 +20,22 @@ describe('tNIGHT units', () => {
     expect(formatNight(1_059_505n)).toBe('1.059505');
     expect(formatNight(1n)).toBe('0.000001');
     expect(formatNight(parseNight('12.34'))).toBe('12.34');
+  });
+});
+
+describe('wallet balances', () => {
+  it('shows tNIGHT with thousands grouped and no trailing zeros', () => {
+    expect(formatBalanceNight(4_996_000_000n)).toBe('4,996');
+    expect(formatBalanceNight(1_500_000n)).toBe('1.5');
+    expect(formatBalanceNight(12_345_678_900_000n)).toBe('12,345,678.9');
+    expect(formatBalanceNight(0n)).toBe('0');
+  });
+
+  it('shows DUST in whole units grouped, and a sliver below one DUST as <1 (1 DUST = 10^15 SPECK)', () => {
+    expect(formatBalanceDust(5_430_130_207_768_000_000n)).toBe('5,430');
+    expect(formatBalanceDust(10n ** 15n)).toBe('1');
+    expect(formatBalanceDust(5n)).toBe('<1');
+    expect(formatBalanceDust(0n)).toBe('0');
   });
 });
 

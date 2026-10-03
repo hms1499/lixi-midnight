@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { claimUrl } from '@lixi/sdk';
-import { setup } from './app-harness';
+import { fakeWallet, setup } from './app-harness';
 import { rnd } from './helpers';
 
 afterEach(cleanup);
@@ -20,6 +20,39 @@ describe('claim page', () => {
     await screen.findByText('It is in your wallet. The link’s secret never touched the chain.');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('1 tNIGHT');
     expect(screen.getByRole('img', { name: 'An opened lì xì' })).toBeTruthy();
+  });
+
+  it('shows the wallet’s balances once connected, warns about 0 DUST, and reads them again after opening', async () => {
+    const user = userEvent.setup();
+    let dust = 0n;
+    const wallet = fakeWallet({ name: 'Lace', balances: () => ({ night: 4_996_000_000n, dust }) });
+    const { show, create } = setup({ detectWallets: () => [wallet] });
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByText(/1 tNIGHT is sealed inside/);
+    await user.click(screen.getByRole('button', { name: 'Connect Lace to open it' }));
+    await screen.findByText('4,996 tNIGHT · 0 DUST');
+    expect(screen.getByText(/Your wallet shows 0 DUST, so it may not be able to pay the fee/)).toBeTruthy();
+    dust = 2n * 10n ** 15n;
+    await user.click(screen.getByRole('button', { name: 'Open the lì xì' }));
+    await screen.findByText('It is in your wallet. The link’s secret never touched the chain.');
+    await screen.findByText('4,996 tNIGHT · 2 DUST');
+  });
+
+  it('never warns 1AM about DUST, and reads the balances again when the tab gets focus back', async () => {
+    const user = userEvent.setup();
+    let night = 120_000_000n;
+    const wallet = fakeWallet({ name: '1AM', balances: () => ({ night, dust: 0n }) });
+    const { show, create } = setup({ detectWallets: () => [wallet] });
+    const [link] = await create();
+    show(claimUrl('', link));
+    await user.click(await screen.findByRole('button', { name: 'Connect 1AM to open it' }));
+    await screen.findByText('120 tNIGHT · 0 DUST');
+    expect(screen.getByText('Fees are paid by 1AM, so your wallet needs no DUST.')).toBeTruthy();
+    expect(screen.queryByText(/Your wallet shows 0 DUST/)).toBeNull();
+    night = 1_250_000_000n;
+    fireEvent.focus(window);
+    await screen.findByText('1,250 tNIGHT · 0 DUST');
   });
 
   it('names both wallets that work when none is installed', async () => {

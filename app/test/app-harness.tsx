@@ -13,13 +13,27 @@ import { HOUR, LixiSimulator, MemoryStorage, rnd, simChain } from './helpers';
 const ADDRESS = 'mn_addr_undeployed1c5c054q33elswjfesnhcccjcsrvckauhdv9fv5wfze0v42nkdfzskcza5a';
 export const ORIGIN = 'https://lixi.test';
 
-const fakeWallet = (): InitialAPI => ({
-  rdns: 'test.wallet',
-  name: 'Test Wallet',
+/**
+ * A wallet that connects at once. With `balances`, it also reports tNIGHT and DUST, read on every
+ * call, so a test can change them between reads.
+ */
+export const fakeWallet = (
+  opts: { name?: string; balances?: () => { night: bigint; dust: bigint } } = {},
+): InitialAPI => ({
+  rdns: `test.${opts.name ?? 'wallet'}`,
+  name: opts.name ?? 'Test Wallet',
   icon: '',
   apiVersion: '4.0.1',
-  connect: async () =>
-    ({ getUnshieldedAddress: async () => ({ unshieldedAddress: ADDRESS }) }) as unknown as ConnectedAPI,
+  connect: async () => {
+    const { balances } = opts;
+    return {
+      getUnshieldedAddress: async () => ({ unshieldedAddress: ADDRESS }),
+      ...(balances && {
+        getUnshieldedBalances: async () => ({ ['0'.repeat(64)]: balances().night }),
+        getDustBalance: async () => ({ balance: balances().dust, cap: 0n }),
+      }),
+    } as unknown as ConnectedAPI;
+  },
 });
 
 /** The whole app on a MemoryRouter, wired to the simulator and a fake wallet. */

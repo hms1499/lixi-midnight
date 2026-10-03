@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useLocation } from 'react-router';
+import { formatBalanceDust, formatBalanceNight } from '../lib/units';
+import { paysOwnFees } from '../wallet/balances';
 import { useWallet } from '../wallet/WalletContext';
 import { MenuIcon } from './icons';
 import { Light } from './Light';
@@ -39,11 +41,34 @@ const WalletControl = () => {
     if (state.status === 'connected') setOpen(false);
   }, [state.status]);
   if (state.status === 'connected') {
-    const a = state.wallet.address;
+    const { name, address: a, balances } = state.wallet;
     return (
       <span className="flex items-center gap-2 text-sm">
-        <span title={a} className="rounded-full border border-white/15 px-3 py-1.5">
-          {state.wallet.name}: {a.slice(0, 12)}…{a.slice(-4)}
+        {/* Once the balances are known they take the address's place (its tooltip keeps it), on one line;
+            a phone drops the wallet's name too and uses smaller type, so the menu button stays on screen. */}
+        <span
+          title={`${name}: ${a}${balances && !paysOwnFees(name) ? ` (fees paid by ${name})` : ''}`}
+          className={
+            balances
+              ? 'flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/15 px-2.5 py-1.5 text-xs sm:px-3 sm:text-sm'
+              : 'rounded-full border border-white/15 px-3 py-1.5'
+          }
+        >
+          {balances ? (
+            <span className="hidden sm:inline">{name}</span>
+          ) : (
+            <>
+              {name}: {a.slice(0, 12)}…{a.slice(-4)}
+            </>
+          )}
+          {balances && (
+            <>
+              <span aria-hidden="true" className="hidden text-paper-dim sm:inline">
+                ·
+              </span>
+              <span>{`${formatBalanceNight(balances.night)} tNIGHT · ${formatBalanceDust(balances.dust)} DUST`}</span>
+            </>
+          )}
         </span>
         <button type="button" className="text-paper-soft underline-offset-4 hover:underline" onClick={disconnect}>
           Disconnect

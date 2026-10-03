@@ -4,6 +4,7 @@ import { encodeLink, parseClaimInput, type ClaimLink } from '@lixi/sdk';
 import { Envelope, type EnvelopeState } from '../components/Envelope';
 import { Page } from '../components/Layout';
 import { Light } from '../components/Light';
+import { FeeHint } from '../components/FeeHint';
 import { RequireWallet } from '../components/WalletPanel';
 import { Button, ButtonLink, Greeting, Notice } from '../components/ui';
 import { claimWithLink, previewClaim, type ClaimPreview, type ClaimRefusal } from '../flows/claim';
@@ -211,9 +212,12 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
                 cta={(name) => (wallets.length === 1 ? `Connect ${name} to open it` : `Connect ${name}`)}
               >
                 {(wallet) => (
-                  <Button type="button" onClick={() => open(wallet.chain, wallet.recipient)}>
-                    Open the lì xì
-                  </Button>
+                  <div className="space-y-4">
+                    <FeeHint wallet={wallet} />
+                    <Button type="button" onClick={() => open(wallet.chain, wallet.recipient)}>
+                      Open the lì xì
+                    </Button>
+                  </div>
                 )}
               </RequireWallet>
             </div>

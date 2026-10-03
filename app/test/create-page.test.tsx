@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { backupString, deriveEnvelope } from '@lixi/sdk';
 import { formatNight } from '../src/lib/units';
 import { VAULT_KEY } from '../src/lib/storage';
-import { ORIGIN, setup } from './app-harness';
+import { ORIGIN, fakeWallet, setup } from './app-harness';
 
 afterEach(cleanup);
 
@@ -34,6 +34,24 @@ describe('create and share', () => {
     await user.click(screen.getByRole('button', { name: 'Copy link: Lì xì 2' }));
     expect(await navigator.clipboard.readText()).toMatch(new RegExp(`^${ORIGIN}/c#v1\\.`));
     expect(screen.getByRole('button', { name: 'Copied: Lì xì 2' })).toBeTruthy();
+  });
+
+  it('warns before sealing when the wallet shows less tNIGHT than the envelope, without blocking', async () => {
+    const user = userEvent.setup();
+    const wallet = fakeWallet({ name: 'Lace', balances: () => ({ night: 2_500_000n, dust: 10n ** 15n }) });
+    const { show } = setup({ detectWallets: () => [wallet] });
+    show('/create');
+    await user.click(await screen.findByLabelText('I saved my backup string'));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    const total = await screen.findByLabelText('Total tNIGHT');
+    await user.clear(total);
+    await user.type(total, '3');
+    const count = screen.getByLabelText('Number of lì xì');
+    await user.clear(count);
+    await user.type(count, '3');
+    await user.click(screen.getByRole('button', { name: 'Connect Lace' }));
+    await screen.findByText('Your wallet shows 2.5 tNIGHT, less than the 3 tNIGHT this envelope needs.');
+    expect((screen.getByRole('button', { name: 'Seal 3 lì xì' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('previews the lucky amounts it will seal, and they add up to the total', async () => {

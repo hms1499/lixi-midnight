@@ -5,6 +5,7 @@ import { deriveEnvelope, nextIndex, type EnvelopeKind, type SenderVault, type Sp
 import { BackupGate } from '../components/BackupPanel';
 import { Page } from '../components/Layout';
 import { Light } from '../components/Light';
+import { FeeHint } from '../components/FeeHint';
 import { WalletPanel } from '../components/WalletPanel';
 import { Button, Notice, Working } from '../components/ui';
 import { createEnvelope, freeIndex, loadOrCreateVault } from '../flows/create';
@@ -263,6 +264,9 @@ export const Create = () => {
             <Working>Sealing your envelope. About 30 seconds; keep this tab open.</Working>
           ) : (
             <div className="flex flex-wrap items-center gap-4">
+              <div className="w-full space-y-3 empty:hidden">
+                <FeeHint wallet={wallet} needNight={total} />
+              </div>
               <Button type="submit" disabled={total === undefined || count === undefined || amountError}>
                 Seal {count ?? ''} lì xì
               </Button>
