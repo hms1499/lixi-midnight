@@ -10,7 +10,7 @@ import { WalletProvider } from '../src/wallet/WalletContext';
 import { HOUR, LixiSimulator, MemoryStorage, rnd, simChain } from './helpers';
 
 // An undeployed-network unshielded address (from sdk/test/address.test.ts).
-const ADDRESS = 'mn_addr_undeployed1c5c054q33elswjfesnhcccjcsrvckauhdv9fv5wfze0v42nkdfzskcza5a';
+export const ADDRESS = 'mn_addr_undeployed1c5c054q33elswjfesnhcccjcsrvckauhdv9fv5wfze0v42nkdfzskcza5a';
 export const ORIGIN = 'https://lixi.test';
 
 /**
@@ -66,12 +66,13 @@ export const setup = (overrides: Partial<Services> = {}) => {
     const result = render(tree(path));
     return { ...result, rerender: () => result.rerender(tree(path)) };
   };
-  const create = async (form: Partial<CreateForm> = {}) => {
+  /** Seals an envelope; its refund goes to `refundAddress` (a random address unless given). */
+  const create = async (form: Partial<CreateForm> = {}, refundAddress: Uint8Array = rnd()) => {
     await createEnvelope(
       chain,
       store,
       { total: 2_000_000n, count: 2, split: 'equal', kind: 'personal', durationSeconds: 2 * HOUR, ...form },
-      rnd(),
+      refundAddress,
       sim.now,
     );
     store.setBackedUp(true);

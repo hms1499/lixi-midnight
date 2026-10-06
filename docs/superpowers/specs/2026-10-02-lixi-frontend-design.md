@@ -246,6 +246,7 @@ Errors from the wallet or prover (Plan 3 `friendlyError`) show under the envelop
 ### 6.5 My envelopes `/dashboard`
 
 - **Header row:** the heading “Your envelopes”, a **Lights / List** toggle (remembered in `localStorage`), and **Fill another envelope**.
+  - Under the heading, once there are envelopes: “Sealed in this browser, whichever wallet is connected. Lì xì you opened are in your wallet, not here.” (amended 2026-10-06 after the Preprod run: a recipient wallet connected in the sender's browser saw the sender's envelopes and read them as its own).
 - **One row per envelope, newest first.** Lights view: the row’s lights (one per lì xì, states from §3), then the summary “10 tNIGHT in 4 lì xì, lucky” and a status line:
   - **open:** “2 opened. Comes home in 21 h if nobody opens the rest.”
   - **refundable:** “Expired yesterday. 1 opened; 2 can come home.” Its unopened lights turn to `home` (gold), with the gold button **Bring X tNIGHT home**.
@@ -253,6 +254,7 @@ Errors from the wallet or prover (Plan 3 `friendlyError`) show under the envelop
   - **empty:** “All opened.”
   - **missing:** ghost lights; “Not on chain. The wallet declined, or it is still on its way.”, with **Remove**.
 - **Actions per row:** **Show links** for open and empty envelopes. Refund needs a wallet: the button reads “Connect a wallet to bring it home” until one is connected, and the wallet panel opens above the list.
+  - When the connected wallet is not the envelope's on-chain refund address, a refundable row adds: “It comes home to the wallet that sealed it, not to <wallet>. <wallet> only pays the fee.” (amended 2026-10-06).
 - **List view:** the same rows as text, with no lights.
 - **Lights are focusable:** each shows “Lì xì i: X tNIGHT, waiting/opened/coming home” on hover and focus. The sender sees amounts; recipients never see this page.
 - **Backup block at the bottom:** “Your backup string rebuilds every envelope here on another device.”, with **Show** (reveals `BackupString` with the warning) and **Restore** (the field, the “replace” confirmation and the messages from Plan 3).

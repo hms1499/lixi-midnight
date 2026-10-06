@@ -2,11 +2,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { backupString, newVault } from '@lixi/sdk';
+import { backupString, newVault, userAddressBytes } from '@lixi/sdk';
 import { refundEnvelope } from '../src/flows/manage';
 import { VAULT_KEY } from '../src/lib/storage';
 import { REFRESH_MS } from '../src/pages/Dashboard';
-import { setup } from './app-harness';
+import { ADDRESS, setup } from './app-harness';
 import { HOUR, T0, rnd } from './helpers';
 
 afterEach(cleanup);
@@ -29,6 +29,37 @@ describe('my envelopes', () => {
     await user.click(screen.getByRole('button', { name: 'Connect Test Wallet' }));
     await user.click(await screen.findByRole('button', { name: 'Bring 1 tNIGHT home' }));
     await screen.findByText('Came home: 1 tNIGHT.');
+  });
+
+  it('says the envelopes belong to this browser, not to the connected wallet', async () => {
+    const { show, create } = setup();
+    await create();
+    show('/dashboard');
+    await screen.findByText(
+      'Sealed in this browser, whichever wallet is connected. Lì xì you opened are in your wallet, not here.',
+    );
+  });
+
+  it('tells another wallet that what comes home goes to the wallet that sealed it', async () => {
+    const user = userEvent.setup();
+    const { sim, show, create } = setup();
+    await create(); // sealed by some other wallet
+    sim.now = T0 + 2 * HOUR;
+    show('/dashboard');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await screen.findByRole('button', { name: 'Bring 2 tNIGHT home' });
+    screen.getByText('It comes home to the wallet that sealed it, not to Test Wallet. Test Wallet only pays the fee.');
+  });
+
+  it('says nothing more when the wallet that sealed it is connected', async () => {
+    const user = userEvent.setup();
+    const { sim, show, create } = setup();
+    await create({}, userAddressBytes(ADDRESS, 'undeployed'));
+    sim.now = T0 + 2 * HOUR;
+    show('/dashboard');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await screen.findByRole('button', { name: 'Bring 2 tNIGHT home' });
+    expect(screen.queryByText(/comes home to the wallet that sealed it/)).toBeNull();
   });
 
   it('reads the chain again by itself, and a light goes out in place when its lì xì is opened', async () => {

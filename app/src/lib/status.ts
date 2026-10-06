@@ -22,6 +22,8 @@ export type EnvelopeView = {
   readonly unclaimedAmount: bigint;
   /** The envelope's real shares in link order; `opened` once its nullifier is on chain. */
   readonly shares: readonly ShareView[];
+  /** Where a refund pays, as recorded on chain at sealing; undefined while the envelope is missing. */
+  readonly refundAddress?: Uint8Array;
 };
 
 /** The dashboard row for one vault envelope, computed locally from public nullifiers. */
@@ -53,5 +55,5 @@ export const envelopeView = (
       : now >= Number(env.expiry)
         ? 'refundable'
         : 'open';
-  return { saved, idHex, state, claimed, unclaimedAmount, shares };
+  return { saved, idHex, state, claimed, unclaimedAmount, shares, refundAddress: env.refundAddress.bytes };
 };

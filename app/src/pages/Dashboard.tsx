@@ -58,6 +58,8 @@ const statusLine = (view: EnvelopeView, now: number): string => {
   }
 };
 
+const sameBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);
+
 const Row = ({
   view,
   mode,
@@ -118,6 +120,15 @@ const Row = ({
           <p className={view.state === 'empty' ? 'text-paper-dim' : ''}>{summary(view)}</p>
           <p className="text-sm text-paper-dim">{statusLine(view, now)}</p>
         </div>
+        {view.state === 'refundable' &&
+          state.status === 'connected' &&
+          view.refundAddress &&
+          !sameBytes(view.refundAddress, state.wallet.recipient) && (
+            <p className="text-sm text-paper-soft">
+              It comes home to the wallet that sealed it, not to {state.wallet.name}. {state.wallet.name} only pays the
+              fee.
+            </p>
+          )}
         {error && <Notice tone="error">{error}</Notice>}
       </div>
       <div className="flex items-start gap-3 sm:justify-end">
@@ -258,7 +269,14 @@ export const Dashboard = () => {
     <Page>
       <div className="max-w-4xl space-y-8">
         <div className="flex flex-wrap items-center gap-4">
-          <h1 className="mr-auto text-4xl">Your envelopes</h1>
+          <div className="mr-auto space-y-1">
+            <h1 className="text-4xl">Your envelopes</h1>
+            {envelopes.length > 0 && (
+              <p className="text-sm text-paper-dim">
+                Sealed in this browser, whichever wallet is connected. Lì xì you opened are in your wallet, not here.
+              </p>
+            )}
+          </div>
           <div
             role="group"
             aria-label="View"
