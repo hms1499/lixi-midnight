@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 import { toHex } from '@lixi/contract';
 import { claimUrl, deriveEnvelope, linksFor } from '@lixi/sdk';
@@ -11,22 +11,31 @@ import { formatNight } from '../lib/units';
 import { useServices } from '../services';
 import { READ_FAILED, friendlyError } from '../wallet/errors';
 
+/** While the envelope is on its way, how often the page looks again, and when it says it is taking long (§3.7). */
+export const SHARE_POLL_MS = 5_000;
+export const SHARE_SLOW_MS = 120_000;
+
 /** Links for one envelope, shown only once the envelope is on chain (spec §6.3). */
 export const Share = () => {
   const { id } = useParams();
   const services = useServices();
   const [onChain, setOnChain] = useState<boolean | string>();
   const [attempt, setAttempt] = useState(0);
+  const [slow, setSlow] = useState(false);
 
-  let found: ReturnType<typeof deriveEnvelope> | undefined;
-  let unreadable: string | undefined;
-  try {
-    const vault = localVaultStore(services.storage).load();
-    const saved = vault?.envelopes.find((e) => toHex(deriveEnvelope(vault.seed, e).id) === id);
-    found = saved && vault ? deriveEnvelope(vault.seed, saved) : undefined;
-  } catch (error) {
-    unreadable = friendlyError(error);
-  }
+  // Derived once per envelope: a fresh id array on every render would make the effects below read the chain again.
+  const { found, unreadable } = useMemo((): {
+    found?: ReturnType<typeof deriveEnvelope>;
+    unreadable?: string;
+  } => {
+    try {
+      const vault = localVaultStore(services.storage).load();
+      const saved = vault?.envelopes.find((e) => toHex(deriveEnvelope(vault.seed, e).id) === id);
+      return { found: saved && vault ? deriveEnvelope(vault.seed, saved) : undefined };
+    } catch (error) {
+      return { unreadable: friendlyError(error) };
+    }
+  }, [services.storage, id]);
   const envelopeId = found?.id;
 
   useEffect(() => {
@@ -40,6 +49,24 @@ export const Share = () => {
       live = false;
     };
   }, [services.reader, envelopeId, attempt]);
+
+  // Not on chain yet: look again every few seconds. A failed background read waits for the next tick.
+  useEffect(() => {
+    if (!envelopeId || onChain !== false) return;
+    const poll = setInterval(() => {
+      services.reader
+        .readLedger()
+        .then((ledger) => {
+          if (ledger.envelopes.member(envelopeId)) setOnChain(true);
+        })
+        .catch(() => undefined);
+    }, SHARE_POLL_MS);
+    const late = setTimeout(() => setSlow(true), SHARE_SLOW_MS);
+    return () => {
+      clearInterval(poll);
+      clearTimeout(late);
+    };
+  }, [services.reader, envelopeId, onChain]);
 
   if (!found)
     return (
@@ -64,6 +91,12 @@ export const Share = () => {
       <Page>
         <div className="space-y-4">
           <Working>Your envelope is on its way to the chain…</Working>
+          {slow && (
+            <Notice tone="warn">
+              Still not on chain. If your wallet shows the transaction failed or was declined, go back and seal again.
+              Your envelope list keeps this attempt as Not on chain.
+            </Notice>
+          )}
           <Button tone="quiet" type="button" onClick={() => setAttempt((n) => n + 1)}>
             Check again
           </Button>

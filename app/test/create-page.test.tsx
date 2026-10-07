@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { backupString, deriveEnvelope } from '@lixi/sdk';
+import { toHex, type Ledger } from '@lixi/contract';
 import { formatNight } from '../src/lib/units';
+import { SHARE_POLL_MS, SHARE_SLOW_MS } from '../src/pages/Share';
 import { VAULT_KEY } from '../src/lib/storage';
 import { ORIGIN, fakeWallet, setup } from './app-harness';
 
@@ -182,5 +184,54 @@ describe('create and share', () => {
     withWallet.show('/create');
     await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
     await screen.findByText('Your wallet pays 10 tNIGHT. 1AM pays the fee.');
+  });
+  it('looks for an envelope on its way by itself, and says so when it takes long', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let landed = false;
+      const notYet = { envelopes: { member: () => false } } as unknown as Ledger;
+      let read: () => Promise<Ledger> = async () => notYet;
+      const { show, create, chain, store } = setup({
+        reader: { readLedger: () => (landed ? read() : Promise.resolve(notYet)) },
+      });
+      read = () => chain.readLedger();
+      await create();
+      const vault = store.load()!;
+      show(`/share/${toHex(deriveEnvelope(vault.seed, vault.envelopes[0]).id)}`);
+      await screen.findByText('Your envelope is on its way to the chain…');
+      await act(() => vi.advanceTimersByTimeAsync(SHARE_SLOW_MS));
+      await screen.findByText(/^Still not on chain\./);
+      landed = true;
+      await act(() => vi.advanceTimersByTimeAsync(SHARE_POLL_MS));
+      await screen.findByRole('heading', { name: '2 lì xì, ready to hand out' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stays on its way, without an error, while background reads fail (Review Focus 3)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let reads = 0;
+      const notYet = { envelopes: { member: () => false } } as unknown as Ledger;
+      const { show, create, store } = setup({
+        reader: {
+          readLedger: async () => {
+            if (reads++ === 0) return notYet;
+            throw new TypeError('Failed to fetch');
+          },
+        },
+      });
+      await create();
+      const vault = store.load()!;
+      show(`/share/${toHex(deriveEnvelope(vault.seed, vault.envelopes[0]).id)}`);
+      await screen.findByText('Your envelope is on its way to the chain…');
+      await act(() => vi.advanceTimersByTimeAsync(3 * SHARE_POLL_MS));
+      expect(reads).toBeGreaterThan(1);
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
