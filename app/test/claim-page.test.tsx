@@ -277,4 +277,24 @@ describe('claim page', () => {
     await screen.findByText(/The local proof server is not running/);
     expect(screen.getByText('Advanced: where proofs are made').closest('details')!.open).toBe(true);
   });
+  it('shows no header Connect wallet while a claim link is still being checked', async () => {
+    const { show, create } = setup({ reader: { readLedger: () => new Promise(() => undefined) } });
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByText('Looking at the envelope…');
+    expect(screen.queryByRole('button', { name: 'Connect wallet' })).toBeNull();
+  });
+
+  it('does not reopen the header wallet panel after visiting a page that hid it', async () => {
+    const user = userEvent.setup();
+    const { show } = setup();
+    show('/');
+    await user.click(await screen.findByRole('button', { name: 'Connect wallet' }));
+    await screen.findByText('Connect your 1AM wallet to use Lixi.');
+    await user.click(screen.getAllByRole('link', { name: 'Fill an envelope' })[0]);
+    await screen.findByLabelText('Total tNIGHT');
+    await user.click(screen.getAllByRole('link', { name: /Lixi/ })[0]);
+    await screen.findByRole('heading', { name: /Every light is one lì xì/ });
+    expect(screen.queryByText('Connect your 1AM wallet to use Lixi.')).toBeNull();
+  });
 });

@@ -37,10 +37,18 @@ const useActiveSection = (onHome: boolean): string | undefined => {
 const WalletControl = () => {
   const { state, disconnect } = useWallet();
   const pagePanel = usePagePanelShown();
+  const { pathname } = useLocation();
+  // Create and claim pages are built around their own wallet panel, so the header hides its button there from
+  // the first render, before that panel mounts; elsewhere a mounted page panel hides it (§3.8).
+  const hidden = pathname === '/create' || pathname === '/c' || pagePanel;
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (state.status === 'connected') setOpen(false);
   }, [state.status]);
+  // A hidden dropdown does not come back open on the next page.
+  useEffect(() => {
+    if (hidden) setOpen(false);
+  }, [hidden]);
   if (state.status === 'connected') {
     const { name, address: a, balances } = state.wallet;
     return (
@@ -78,7 +86,7 @@ const WalletControl = () => {
     );
   }
   // The page shows its own wallet panel; a second Connect button would only compete with it (§3.8).
-  if (pagePanel) return null;
+  if (hidden) return null;
   return (
     <span className="relative">
       <Button tone="quiet" type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
