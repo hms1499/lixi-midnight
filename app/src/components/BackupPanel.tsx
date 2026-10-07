@@ -30,11 +30,14 @@ export const BackupString = ({ vault }: { vault: SenderVault }) => {
 export const BackupStep = ({
   vault,
   count,
+  ready,
   onSaved,
   onBack,
 }: {
   vault: SenderVault;
   count?: number;
+  /** False when the form above became invalid meanwhile; Seal then waits for it. */
+  ready: boolean;
   onSaved: () => void;
   onBack: () => void;
 }) => {
@@ -51,7 +54,7 @@ export const BackupStep = ({
         <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} />I saved my backup string
       </label>
       <div className="flex flex-wrap gap-3">
-        <Button type="button" disabled={!saved} onClick={onSaved}>
+        <Button type="button" disabled={!saved || !ready} onClick={onSaved}>
           Saved, seal {count ?? ''} lì xì
         </Button>
         <Button tone="quiet" type="button" onClick={onBack}>

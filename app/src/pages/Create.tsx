@@ -272,6 +272,7 @@ export const Create = () => {
             <BackupStep
               vault={vault.vault}
               count={count}
+              ready={total !== undefined && count !== undefined && !amountError}
               onBack={() => setAskBackup(false)}
               onSaved={() => {
                 store.setBackedUp(true);

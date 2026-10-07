@@ -265,4 +265,14 @@ describe('create and share', () => {
     await user.click(screen.getByRole('button', { name: 'Check again' }));
     await screen.findByRole('heading', { name: '2 lì xì, ready to hand out' });
   });
+  it('the backup step cannot seal a form that became invalid meanwhile', async () => {
+    const user = userEvent.setup();
+    const { show } = setup();
+    show('/create');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await user.click(await screen.findByRole('button', { name: 'Seal 4 lì xì' }));
+    await user.click(await screen.findByLabelText('I saved my backup string'));
+    await user.clear(screen.getByLabelText('Number of lì xì'));
+    expect((screen.getByRole('button', { name: /^Saved, seal/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
 });
