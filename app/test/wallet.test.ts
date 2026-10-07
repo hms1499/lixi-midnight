@@ -14,12 +14,13 @@ const initial = (over: Partial<InitialAPI> = {}): InitialAPI => ({
 });
 
 describe('detectWallets', () => {
-  it('keeps one compatible API per wallet', () => {
+  it('keeps one compatible 1AM API, and ignores every other wallet', () => {
     const found = detectWallets({
       a: initial(),
       b: initial({ apiVersion: '4.1.0' }),
-      c: initial({ rdns: 'io.lace', name: 'Lace', apiVersion: '3.0.0' }),
+      c: initial({ rdns: 'io.lace', name: 'Lace', apiVersion: '4.0.1' }),
       d: { name: 'junk' } as unknown as InitialAPI,
+      e: initial({ rdns: 'xyz.1am.old', apiVersion: '3.0.0' }),
     });
     expect(found.map((w) => `${w.name} ${w.apiVersion}`)).toEqual(['1AM 4.0.1']);
     expect(detectWallets(undefined)).toEqual([]);
@@ -88,7 +89,7 @@ describe('balanceOrExplain', () => {
     ).toBe('ab');
   });
 
-  it('reports "no dust" when a wallet with no DUST fails to balance (Lace throws a bare Error)', async () => {
+  it('reports "no dust" when a wallet with no DUST fails to balance with a bare Error', async () => {
     await expect(
       balanceOrExplain(
         wallet(() => Promise.reject(new Error()), 0n),
@@ -130,34 +131,25 @@ describe('readBalances', () => {
 });
 
 describe('feeWarnings', () => {
-  const lace = (night: bigint, dust: bigint) => ({ name: 'Lace', balances: { night, dust } });
+  const wallet = (night: bigint, dust: bigint) => ({ balances: { night, dust } });
 
-  it('warns a wallet that pays its own fees when it shows no DUST', () => {
-    expect(feeWarnings(lace(10_000_000n, 0n))).toEqual([
-      'Your wallet shows 0 DUST, so it may not be able to pay the fee. Designate NIGHT to generate DUST (in Lace: NIGHT, then Generate DUST), then try again.',
-    ]);
-    expect(feeWarnings(lace(10_000_000n, 1n))).toEqual([]);
+  it('never warns about DUST, because 1AM pays the fee', () => {
+    expect(feeWarnings(wallet(10_000_000n, 0n))).toEqual([]);
   });
 
-  it('never warns 1AM about DUST, because its sponsor pays the fee', () => {
-    expect(feeWarnings({ name: '1AM', balances: { night: 0n, dust: 0n } })).toEqual([]);
-  });
-
-  it('warns when the wallet holds less tNIGHT than the envelope needs', () => {
-    expect(feeWarnings(lace(2_500_000n, 1n), 3_000_000n)).toEqual([
+  it('warns when the wallet shows less tNIGHT than the envelope needs', () => {
+    expect(feeWarnings(wallet(2_500_000n, 0n), 3_000_000n)).toEqual([
       'Your wallet shows 2.5 tNIGHT, less than the 3 tNIGHT this envelope needs.',
     ]);
-    expect(feeWarnings({ name: '1AM', balances: { night: 1n, dust: 0n } }, 3_000_000n)).toHaveLength(1);
-    expect(feeWarnings(lace(3_000_000n, 1n), 3_000_000n)).toEqual([]);
+    expect(feeWarnings(wallet(3_000_000n, 0n), 3_000_000n)).toEqual([]);
   });
 
   it('says nothing when the balances are unknown', () => {
-    expect(feeWarnings({ name: 'Lace' }, 3_000_000n)).toEqual([]);
+    expect(feeWarnings({}, 3_000_000n)).toEqual([]);
   });
 
-  it('tells a 1AM user who pays the fee, and has nothing to say to other wallets', () => {
+  it('tells the user who pays the fee', () => {
     expect(feeNote('1AM')).toBe('Fees are paid by 1AM, so your wallet needs no DUST.');
-    expect(feeNote('Lace')).toBeUndefined();
   });
 });
 
@@ -204,7 +196,8 @@ describe('friendlyError', () => {
   it('says how to get DUST when the wallet has none to pay the fee', () => {
     const wrapped = "Unexpected error submitting scoped transaction '<unnamed>': Error: no dust";
     expect(friendlyError(new Error(wrapped))).toMatch(/^Your wallet has no DUST to pay the fee\. Nothing was sent\./);
-    expect(friendlyError(new Error(wrapped))).toMatch(/Generate DUST/);
+    expect(friendlyError(new Error(wrapped))).toMatch(/let 1AM pay the fee/);
+    expect(friendlyError(new Error(wrapped))).not.toMatch(/Lace/);
   });
 
   it('says how to start a proof server when proving could not reach one', () => {
@@ -212,7 +205,8 @@ describe('friendlyError', () => {
       "Unexpected error submitting scoped transaction '<unnamed>': Error: 'check' returned an error: TypeError: Failed to fetch";
     expect(friendlyError(new Error(blocked))).toMatch(/^A proof server could not be reached\./);
     expect(friendlyError(new Error(blocked))).toMatch(/docker run/);
-    expect(friendlyError(new Error(blocked))).toMatch(/Proof Server, Local/);
+    expect(friendlyError(new Error(blocked))).toMatch(/In 1AM under Advanced/);
+    expect(friendlyError(new Error(blocked))).not.toMatch(/Lace/);
   });
 
   it('drops the SDK wrapper from a failed transaction and keeps what the wallet said', () => {

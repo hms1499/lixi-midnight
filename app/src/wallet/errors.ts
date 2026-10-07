@@ -26,7 +26,7 @@ export const PROOF_SERVER_COMMAND =
 export const friendlyError = (error: unknown): string => {
   const code = connectorCode(error);
   const text = redactUrl(messageOf(error));
-  // Lace reports a locked wallet with the same code as a declined request.
+  // A wallet can report a locked wallet with the same code as a declined request.
   if (code === 'Rejected' && /locked/i.test(text)) return 'Your wallet is locked. Unlock it, then try again.';
   if (code === 'Rejected' || code === 'PermissionRejected') return 'You declined the request in your wallet.';
   if (code === 'Disconnected') return 'Your wallet disconnected. Connect it again.';
@@ -38,7 +38,7 @@ export const friendlyError = (error: unknown): string => {
   // The ledger wraps a failed fetch from the prover's /check or /prove, whichever prover was chosen. Seen when
   // the proof server is down, and when the CSP blocks a wallet's proof server that is not local (audit H4).
   if (/returned an error: TypeError: Failed to fetch/.test(text))
-    return `A proof server could not be reached. Start the local one with “${PROOF_SERVER_COMMAND}”. If your wallet makes the proofs, set it to that local proof server (in Lace: Midnight Settings, Proof Server, Local).`;
+    return `A proof server could not be reached. Start the local one with “${PROOF_SERVER_COMMAND}”, or choose In 1AM under Advanced.`;
   if (text === 'corrupt vault')
     return 'Your saved Lixi data cannot be read. Restore it from your backup string on the Dashboard.';
   if (text === 'expiry out of range') return 'That expiry is outside what the contract allows. Pick another one.';
@@ -54,7 +54,7 @@ export const friendlyError = (error: unknown): string => {
   // The SDK wraps whatever the prover or wallet threw; only the wallet's part means anything to the user.
   const said = text.replace(/^Unexpected error submitting scoped transaction '[^']*': (Error: ?)?/, '');
   if (said === 'no dust')
-    return 'Your wallet has no DUST to pay the fee. Nothing was sent. Designate your NIGHT to generate DUST (in Lace: NIGHT, then Generate DUST), wait until your DUST balance is above zero, then try again.';
+    return 'Your wallet has no DUST to pay the fee. Nothing was sent. In 1AM, let 1AM pay the fee instead of paying with your own DUST, or generate DUST from your NIGHT and wait until it is above zero, then try again.';
   const retry = 'If your wallet just sent another transaction, wait about 30 seconds and try again.';
   if (said === '' || said === 'Error') return `Your wallet could not finish the transaction. ${retry}`;
   return `${said.replace(/\.$/, '')}. ${retry}`;

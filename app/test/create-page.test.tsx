@@ -38,7 +38,7 @@ describe('create and share', () => {
 
   it('warns before sealing when the wallet shows less tNIGHT than the envelope, without blocking', async () => {
     const user = userEvent.setup();
-    const wallet = fakeWallet({ name: 'Lace', balances: () => ({ night: 2_500_000n, dust: 10n ** 15n }) });
+    const wallet = fakeWallet({ name: '1AM', balances: () => ({ night: 2_500_000n, dust: 10n ** 15n }) });
     const { show } = setup({ detectWallets: () => [wallet] });
     show('/create');
     await user.click(await screen.findByLabelText('I saved my backup string'));
@@ -49,7 +49,7 @@ describe('create and share', () => {
     const count = screen.getByLabelText('Number of lì xì');
     await user.clear(count);
     await user.type(count, '3');
-    await user.click(screen.getByRole('button', { name: 'Connect Lace' }));
+    await user.click(screen.getByRole('button', { name: 'Connect 1AM' }));
     await screen.findByText('Your wallet shows 2.5 tNIGHT, less than the 3 tNIGHT this envelope needs.');
     expect((screen.getByRole('button', { name: 'Seal 3 lì xì' }) as HTMLButtonElement).disabled).toBe(false);
   });

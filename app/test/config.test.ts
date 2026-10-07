@@ -28,12 +28,13 @@ describe('appConfig', () => {
 });
 
 describe('CSP', () => {
-  it('allows only our origin, the Blockfrost indexer and the local proof server, under both its names', () => {
+  it('allows only our origin, the Blockfrost indexer and the local proof server', () => {
     const policy = cspFor('preprod');
     expect(policy).toContain("script-src 'self' 'wasm-unsafe-eval'");
     expect(policy).toContain(
-      "connect-src 'self' https://midnight-preprod.blockfrost.io wss://midnight-preprod.blockfrost.io http://127.0.0.1:6300 http://localhost:6300",
+      "connect-src 'self' https://midnight-preprod.blockfrost.io wss://midnight-preprod.blockfrost.io http://127.0.0.1:6300;",
     );
+    expect(policy).not.toContain('localhost');
     expect(policy).not.toMatch(/'unsafe-inline'|'unsafe-eval'|\*|project_id/);
   });
 

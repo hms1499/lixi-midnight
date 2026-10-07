@@ -17,31 +17,17 @@ export const readBalances = async (api: ConnectedAPI): Promise<Balances | undefi
   }
 };
 
-/** 1AM pays fees through its own sponsor (spike S4), so its wallet's DUST says nothing about fees. */
-export const paysOwnFees = (walletName: string): boolean => !/1am/i.test(walletName);
-
-/** For a wallet whose fees someone else pays: who pays, shown above the button instead of a DUST warning. */
-export const feeNote = (walletName: string): string | undefined =>
-  paysOwnFees(walletName) ? undefined : `Fees are paid by ${walletName}, so your wallet needs no DUST.`;
+/** 1AM pays fees through its own sponsor (spike S4), so the wallet's DUST says nothing about fees. */
+export const feeNote = (walletName: string): string => `Fees are paid by ${walletName}, so your wallet needs no DUST.`;
 
 /**
  * Early warnings to show above a button that sends a transaction. They never block it: a wallet's
- * balances can lag the chain (Lace's DUST view, spike S4 retest).
+ * balances can lag the chain.
  */
-export const feeWarnings = (
-  wallet: { readonly name: string; readonly balances?: Balances },
-  needNight?: bigint,
-): string[] => {
+export const feeWarnings = (wallet: { readonly balances?: Balances }, needNight?: bigint): string[] => {
   const { balances } = wallet;
-  if (!balances) return [];
-  const warnings: string[] = [];
-  if (needNight !== undefined && balances.night < needNight)
-    warnings.push(
-      `Your wallet shows ${formatBalanceNight(balances.night)} tNIGHT, less than the ${formatNight(needNight)} tNIGHT this envelope needs.`,
-    );
-  if (paysOwnFees(wallet.name) && balances.dust === 0n)
-    warnings.push(
-      'Your wallet shows 0 DUST, so it may not be able to pay the fee. Designate NIGHT to generate DUST (in Lace: NIGHT, then Generate DUST), then try again.',
-    );
-  return warnings;
+  if (!balances || needNight === undefined || balances.night >= needNight) return [];
+  return [
+    `Your wallet shows ${formatBalanceNight(balances.night)} tNIGHT, less than the ${formatNight(needNight)} tNIGHT this envelope needs.`,
+  ];
 };

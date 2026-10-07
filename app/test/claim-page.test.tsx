@@ -22,17 +22,16 @@ describe('claim page', () => {
     expect(screen.getByRole('img', { name: 'An opened lì xì' })).toBeTruthy();
   });
 
-  it('shows the wallet’s balances once connected, warns about 0 DUST, and reads them again after opening', async () => {
+  it('shows the wallet’s balances once connected, and reads them again after opening', async () => {
     const user = userEvent.setup();
     let dust = 0n;
-    const wallet = fakeWallet({ name: 'Lace', balances: () => ({ night: 4_996_000_000n, dust }) });
+    const wallet = fakeWallet({ name: '1AM', balances: () => ({ night: 4_996_000_000n, dust }) });
     const { show, create } = setup({ detectWallets: () => [wallet] });
     const [link] = await create();
     show(claimUrl('', link));
     await screen.findByText(/1 tNIGHT is sealed inside/);
-    await user.click(screen.getByRole('button', { name: 'Connect Lace to open it' }));
+    await user.click(screen.getByRole('button', { name: 'Connect 1AM to open it' }));
     await screen.findByText('4,996 tNIGHT · 0 DUST');
-    expect(screen.getByText(/Your wallet shows 0 DUST, so it may not be able to pay the fee/)).toBeTruthy();
     dust = 2n * 10n ** 15n;
     await user.click(screen.getByRole('button', { name: 'Open the lì xì' }));
     await screen.findByText('It is in your wallet. The link’s secret never touched the chain.');
@@ -55,13 +54,13 @@ describe('claim page', () => {
     await screen.findByText('1,250 tNIGHT · 0 DUST');
   });
 
-  it('names both wallets that work when none is installed', async () => {
+  it('names 1AM, and no other wallet, when none is installed', async () => {
     const { show, create } = setup({ detectWallets: () => [] });
     const [link] = await create();
     show(claimUrl('', link));
     await screen.findByText(/No Midnight wallet found in this browser/);
     expect(screen.getByRole('link', { name: '1AM' }).getAttribute('href')).toBe('https://1am.xyz');
-    expect(screen.getByRole('link', { name: 'Lace' }).getAttribute('href')).toBe('https://www.lace.io');
+    expect(screen.queryByRole('link', { name: 'Lace' })).toBeNull();
   });
 
   it('says why a lì xì cannot be opened', async () => {

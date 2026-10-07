@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useLocation } from 'react-router';
 import { formatBalanceDust, formatBalanceNight } from '../lib/units';
-import { paysOwnFees } from '../wallet/balances';
 import { useWallet } from '../wallet/WalletContext';
 import { MenuIcon } from './icons';
 import { Light } from './Light';
@@ -47,7 +46,7 @@ const WalletControl = () => {
         {/* Once the balances are known they take the address's place (its tooltip keeps it), on one line;
             a phone drops the wallet's name too and uses smaller type, so the menu button stays on screen. */}
         <span
-          title={`${name}: ${a}${balances && !paysOwnFees(name) ? ` (fees paid by ${name})` : ''}`}
+          title={`${name}: ${a}${balances ? ` (fees paid by ${name})` : ''}`}
           className={
             balances
               ? 'flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/15 px-2.5 py-1.5 text-xs sm:px-3 sm:text-sm'

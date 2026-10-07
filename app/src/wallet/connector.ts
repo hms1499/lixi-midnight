@@ -1,18 +1,22 @@
 import type { ConnectedAPI, InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
 import { messageOf } from './errors';
 
-/** Lace's connect() can hang without an error (spike S4), so connecting gives up after this long. */
+/** A wallet that never answers connect() would leave the page waiting, so connecting gives up after this long. */
 export const CONNECT_TIMEOUT_MS = 60_000;
 
 /** The DApp Connector API major version this app is built against (4.0.1). */
 const API_MAJOR = '4.';
 
-/** Wallets that injected a compatible DApp Connector API into `window.midnight`, one per wallet. */
+/** Lixi connects 1AM only (UX polish spec §3.1): Lace proved unstable on Preprod. */
+const SUPPORTED = /1am/i;
+
+/** 1AM wallets that injected a compatible DApp Connector API into `window.midnight`, one per wallet. */
 export const detectWallets = (injected: Record<string, InitialAPI> | undefined): InitialAPI[] => {
   const byRdns = new Map<string, InitialAPI>();
   for (const w of Object.values(injected ?? {})) {
     const compatible = typeof w?.connect === 'function' && String(w.apiVersion).startsWith(API_MAJOR);
-    if (compatible && !byRdns.has(w.rdns)) byRdns.set(w.rdns, w);
+    const supported = SUPPORTED.test(String(w?.name)) || SUPPORTED.test(String(w?.rdns));
+    if (compatible && supported && !byRdns.has(w.rdns)) byRdns.set(w.rdns, w);
   }
   return [...byRdns.values()];
 };
@@ -40,9 +44,9 @@ export const retryingOnce = <T extends object>(api: T): T =>
   });
 
 /**
- * Has the wallet add the DUST fee to `tx`. Lace with no DUST fails here with a bare Error (spike S4
- * retest), so a failure asks the wallet for its DUST and reports 'no dust' when there is none. It
- * asks only after a failure: 1AM can pay through its sponsor with no DUST of its own.
+ * Has the wallet add the DUST fee to `tx`. A wallet paying with its own DUST and holding none fails
+ * here with a bare Error (spike S4 retest), so a failure asks the wallet for its DUST and reports
+ * 'no dust' when there is none. It asks only after a failure: 1AM normally pays through its sponsor.
  */
 export const balanceOrExplain = async (api: ConnectedAPI, tx: string): Promise<string> => {
   try {
