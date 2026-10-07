@@ -57,6 +57,7 @@ What the app now does about it:
   - The Midnight wallet reference says 1AM proves in the browser (WASM).
   - This spike did not inspect the network traffic during proving, so that is unverified.
   - Plan 3 must check it in DevTools before treating 1AM proving as local. If it turns out not to be local, keep a "local proof server" option for the share secret.
+  - Plan 3 skipped the DevTools check (2026-10-07), so it is still unverified. The "On this computer" prover stays in the app for anyone who wants the secret to stay local.
 - **1AM connector quirks.** The app has to handle each of these:
   - The first call after ~45–65 s idle fails with `Request failed`, and an immediate retry succeeds. This was seen four times. Retry every connector call once.
   - `Wallet is syncing — open 1AM and wait for sync to finish` comes up while a wallet catches up. Show a waiting state with that instruction, then retry.
@@ -64,7 +65,7 @@ What the app now does about it:
   - `getDustBalance()` reports a balance far above its `cap` (unit mismatch). Do not show `cap`, and do not compare against it.
 - **Lace:**
   - `connect()` can hang with no error. Time it out (60 s), then tell the user to open Lace from the extensions menu and approve.
-  - Lace has no `getProvingProvider`, so it needs the local proof server.
+  - Lace 2.4.2 has `getProvingProvider`, but it proves through its own proof-server setting (Local = `http://localhost:6300`). Either way, Lace needs the local proof server.
   - Open Lace issues on Preprod: [#2243](https://github.com/input-output-hk/lace/issues/2243) ("Wallet is unavailable" right after connect) and [#2256](https://github.com/input-output-hk/lace/issues/2256) (DUST balance freezes).
 - **One wallet per key:** the demo and test wallets must not share a recovery phrase with the deployer or with each other.
 - **Wallet sync:**
@@ -96,3 +97,23 @@ midnight-js returns the 33-byte transaction *identifier*. The indexer finds it w
 What this means for the wallets in Task 11:
 - 1AM's `DUST_SYNC_STALE` and Lace's DUST balance of 0 are consistent with the same indexer change. Their wallets run their own sync, so only their vendors can fix them.
 - Unconfirmed.
+
+## Plan 3 app run (Preprod, 2026-10-06 – 2026-10-07)
+
+Built site (`vite preview`, CSP on), contract `971f70ae…1f61`, three 1AM wallets with separate phrases, prover "In my wallet". Lace was meant to run it, but its Authorize button stopped responding again on 2026-10-06. 1AM's sponsor had recovered from `DUST_SYNC_STALE` by then.
+
+| Step | Result | Tx / note |
+|---|---|---|
+| CSP with the 1AM extension | **Passed:** 1AM listed, no CSP violation in any of the three profiles | |
+| Where 1AM proves (H4) | **Not checked** (skipped) | Unverified. The "On this computer" prover remains the local option. |
+| Create personal, 4 × lucky, 10 tNIGHT, ~24 h | **Passed** | envelope `6364c663…`; shares 1.277978 / 4.975531 / 0.257603 / 3.488888 |
+| Create group, 2 × 5 tNIGHT, one per wallet | **Passed** | envelope `71297011…` |
+| Claim personal link 1 | **Passed** | the chain shows 1 of 4 shares claimed |
+| Group: claim, then the same wallet again | **Passed:** the second claim is refused | the chain shows 1 of 2 shares claimed |
+| Bring the group envelope home after expiry | **Passed:** the unopened 5 tNIGHT came home | the chain shows `refunded = true` (read 2026-10-07) |
+| Bring the personal envelope home | Pending | It expires 2026-10-07 14:58:47Z. |
+
+Issues found and fixed:
+- Lace's "In my wallet" was blocked by the CSP, because it proves via `localhost`, not `127.0.0.1`. The CSP now lists both loopback names (`f61cd79`).
+- Two wallets in one browser profile see the same My envelopes list, because the vault lives in the browser's `localStorage`. This is by design. The page now says the list belongs to this browser, and that a refund goes to the wallet that sealed the envelope (`37db342`).
+- Seals failed with node error 171 (`OutOfDustValidityWindow`) during 1AM's DUST outage (2026-10-02 – 03). The fault was in 1AM's infrastructure. The app now says the wallet's DUST is out of date, instead of asking for a retry.
