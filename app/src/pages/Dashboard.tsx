@@ -277,23 +277,25 @@ export const Dashboard = () => {
               </p>
             )}
           </div>
-          <div
-            role="group"
-            aria-label="View"
-            className="flex overflow-hidden rounded-md border border-white/15 text-sm"
-          >
-            {(['lights', 'list'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={mode === m}
-                onClick={() => choose(m)}
-                className={`px-3 py-1.5 ${mode === m ? 'bg-white/10 text-paper' : 'text-paper-soft'}`}
-              >
-                {m === 'lights' ? 'Lights' : 'List'}
-              </button>
-            ))}
-          </div>
+          {envelopes.length > 0 && (
+            <div
+              role="group"
+              aria-label="View"
+              className="flex overflow-hidden rounded-md border border-white/15 text-sm"
+            >
+              {(['lights', 'list'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={mode === m}
+                  onClick={() => choose(m)}
+                  className={`px-3 py-1.5 ${mode === m ? 'bg-white/10 text-paper' : 'text-paper-soft'}`}
+                >
+                  {m === 'lights' ? 'Lights' : 'List'}
+                </button>
+              ))}
+            </div>
+          )}
           {envelopes.length > 0 && <ButtonLink to="/create">Fill another envelope</ButtonLink>}
         </div>
 
@@ -325,24 +327,30 @@ export const Dashboard = () => {
           </ul>
         )}
 
-        <div className="space-y-5 rounded-lg border border-white/10 p-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="mr-auto text-sm text-paper-soft">
-              <span className="font-semibold text-paper">Your backup string</span> rebuilds every envelope here on
-              another device.
-            </p>
-            {vault.vault && (
-              <Button tone="quiet" type="button" onClick={() => setShow(show === 'backup' ? 'none' : 'backup')}>
-                Show
-              </Button>
+        {/* Empty: no backup box, only the restore form once the empty state's button (or an unreadable vault)
+            opens it. One box either way, so a restore that fills the list keeps its form and message. */}
+        {(envelopes.length > 0 || show === 'restore') && (
+          <div className="space-y-5 rounded-lg border border-white/10 p-5">
+            {envelopes.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="mr-auto text-sm text-paper-soft">
+                  <span className="font-semibold text-paper">Your backup string</span> rebuilds every envelope here on
+                  another device.
+                </p>
+                {vault.vault && (
+                  <Button tone="quiet" type="button" onClick={() => setShow(show === 'backup' ? 'none' : 'backup')}>
+                    Show
+                  </Button>
+                )}
+                <Button tone="quiet" type="button" onClick={() => setShow(show === 'restore' ? 'none' : 'restore')}>
+                  Restore
+                </Button>
+              </div>
             )}
-            <Button tone="quiet" type="button" onClick={() => setShow(show === 'restore' ? 'none' : 'restore')}>
-              Restore
-            </Button>
+            {show === 'backup' && vault.vault && <BackupString vault={vault.vault} />}
+            {show === 'restore' && <Restore onRestored={reload} />}
           </div>
-          {show === 'backup' && vault.vault && <BackupString vault={vault.vault} />}
-          {show === 'restore' && <Restore onRestored={reload} />}
-        </div>
+        )}
       </div>
     </Page>
   );

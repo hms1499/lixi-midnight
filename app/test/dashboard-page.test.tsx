@@ -129,4 +129,15 @@ describe('my envelopes', () => {
     await user.click(screen.getByRole('button', { name: 'Restore envelopes' }));
     await screen.findByText(/different backup string/);
   });
+  it('an empty list shows only how to start: no view toggle, no backup box, one way to restore', async () => {
+    const user = userEvent.setup();
+    const { show } = setup();
+    show('/dashboard');
+    await screen.findByText('No envelopes in this browser yet.');
+    expect(screen.queryByRole('group', { name: 'View' })).toBeNull();
+    expect(screen.queryByText('Your backup string')).toBeNull();
+    expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Restore from a backup string' }));
+    expect(screen.getByLabelText('Restore from a backup string')).toBeTruthy();
+  });
 });
