@@ -60,7 +60,7 @@ We state the last row plainly in the README and the pitch.
 - **Fees.** The recipient needs a wallet with DUST to pay the claim fee. Fee sponsorship is Wave 3 unless spike S5 shows it is cheap to add.
 - **Sender can claim.** The sender knows every secret and can claim shares before recipients do. This is inherent: it is the same as taking back your own envelope.
 - **Bearer links.** A link works like cash: a leaked link means a lost share.
-- **Lace needs Docker.** Lace requires a local proof server. 1AM proves in the browser.
+- **Lace needs Docker.** Lace requires a local proof server. 1AM proves in the browser. **Dropped 2026-10-07:** Lace was unstable on Preprod, so the app connects 1AM only (spec 2026-10-07-lixi-ux-polish-design.md).
 - **Desktop first.** 1AM mobile (iOS and Android beta, with a dApp browser) is the Wave 3 path.
 
 ---
@@ -167,7 +167,7 @@ The tree is a custom fixed-depth Merkle tree with `DEPTH = 4`. `rootOf`, `rootFr
 contract/   lixi.compact, witnesses, simulator tests (vitest)
 sdk/        seed derivation, split generation, tree/paths via pure circuits,
             link codec, midnight-js wrappers (deploy/create/claim/refund), indexer reads
-app/        React + Vite + Tailwind; wallet bridge (1AM via getProvingProvider, Lace via local proof server)
+app/        React + Vite + Tailwind; wallet bridge (1AM, proving in 1AM or with the local proof server)
 cli/        deploy script, devnet end-to-end tests
 docs/       specs, architecture diagram, audit notes
 ```
@@ -183,7 +183,7 @@ The project is scaffolded from the `create-mn-app` `leaderboard` template (React
  │ seed → shares     │                  │ envelopes/nullifiers │          │ link → share+path │
  │ private state     │ ◀── indexer ──── │ pooled tNIGHT        │ ── pay ─▶│ wallet address    │
  └────────┬──────────┘                  └──────────────────────┘          └────────┬──────────┘
-          │ proving: 1AM WASM in-tab, or Lace + local proof server (never a shared server; audit H4)
+          │ proving: in 1AM, or with the local proof server (never a shared server; audit H4)
 ```
 
 ### 4.3 Link format
@@ -209,7 +209,7 @@ The **Lixi seed** is 32 random bytes, shown once as a backup string. The sender 
 | Route | Purpose |
 |---|---|
 | `/` | Landing and explanation |
-| `/create` | Envelope form and seed backup prompt |
+| `/create` | Envelope form; the seed backup prompt at the first Seal |
 | `/share/:id` | Links (and QR codes, Could tier), shown only after confirmation |
 | `/c` | Claim page: no third-party scripts, strict CSP (audit Low) |
 | `/dashboard` | Envelope list, claim status, Refund, seed import/export |
@@ -218,7 +218,7 @@ The UI is in English; the Vietnamese lì xì story is the theme.
 
 ### 4.6 Error handling
 - **Wallet not installed or wrong network:** blocking banner with setup steps.
-- **Proof server unreachable (Lace):** explain how to start the Docker proof server.
+- **Proof server unreachable:** explain how to start the Docker proof server, or prove in 1AM.
 - **Claim fails because the share is already claimed, the envelope expired or the link is invalid:** a specific, friendly message. The SDK checks the nullifier and expiry *before* proving, to avoid wasted fees.
 - **Less than 10 minutes to expiry:** warn the recipient before they prove.
 - **Group-mode collision:** retry automatically with another unclaimed share (at most 3 tries).

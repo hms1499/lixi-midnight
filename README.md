@@ -56,9 +56,9 @@ npm run build -w @lixi/app && npm run preview -w @lixi/app   # http://localhost:
 npm run dev -w @lixi/app                                     # dev server with hot reload (no CSP)
 ```
 
-You need the [1AM](https://1am.xyz) wallet on Preprod, with tNIGHT from the faucet registered for DUST. To prove on your own machine instead of in the wallet, start the proof server (`docker run -p 127.0.0.1:6300:6300 midnightntwrk/proof-server:8.1.0 midnight-proof-server`) and choose "On this computer" when connecting.
+Lixi needs Chrome on a computer with the [1AM](https://1am.xyz) wallet extension, set to Preprod. 1AM pays the fees, so recipients need no tNIGHT or DUST; senders need tNIGHT from the faucet. A phone shows the envelope and offers to copy the link for a computer. To prove on your own machine instead of in 1AM, start the proof server (`docker run -p 127.0.0.1:6300:6300 midnightntwrk/proof-server:8.1.0 midnight-proof-server`) and choose "On this computer" under "Advanced" when connecting.
 
-[Lace](https://www.lace.io) 2.4.2 also works, always with that local proof server: set Midnight Settings → Proof Server to Local, or choose "On this computer". Lace pays fees from its own DUST, so designate your NIGHT first (NIGHT → Generate DUST) and wait until Lace shows a DUST balance above zero.
+Lace was dropped on 2026-10-07: on Preprod its connect hung, its Authorize button stopped responding, and its DUST balance froze ([lace#2256](https://github.com/input-output-hk/lace/issues/2256)).
 
 Fonts: Fraunces and Playwrite VN (SIL Open Font License 1.1). Icons adapted from Lucide (ISC).
 
