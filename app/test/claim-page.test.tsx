@@ -101,15 +101,38 @@ describe('claim page', () => {
     await screen.findByText(/not a Lixi link/);
   });
 
-  it('shows the same choice of where proofs are made in both wallet panels', async () => {
+  it('hides the header’s Connect wallet while the page shows its own wallet panel', async () => {
+    const { show, create, store } = setup();
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByRole('button', { name: 'Connect Test Wallet to open it' });
+    expect(screen.queryByRole('button', { name: 'Connect wallet' })).toBeNull();
+    cleanup();
+    store.setBackedUp(true);
+    show('/create');
+    await screen.findByRole('button', { name: 'Connect Test Wallet' });
+    expect(screen.queryByRole('button', { name: 'Connect wallet' })).toBeNull();
+    cleanup();
+    show('/');
+    await screen.findByRole('heading', { name: /Every light is one lì xì/ });
+    expect(screen.getByRole('button', { name: 'Connect wallet' })).toBeTruthy();
+  });
+
+  it('remembers a prover chosen in the header panel on the page panel', async () => {
     const user = userEvent.setup();
     const { show, create } = setup();
     const [link] = await create();
+    show('/');
+    await user.click(await screen.findByRole('button', { name: 'Connect wallet' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'On this computer, with the local proof server', hidden: true }));
+    cleanup();
     show(claimUrl('', link));
     await screen.findByText(/1 tNIGHT is sealed inside/);
-    await user.click(screen.getByRole('button', { name: 'Connect wallet' }));
-    const radios = screen.getAllByRole('radio', { name: 'In 1AM (default)', hidden: true }) as HTMLInputElement[];
-    expect(radios.map((r) => r.checked)).toEqual([true, true]);
+    const local = screen.getByRole('radio', {
+      name: 'On this computer, with the local proof server',
+      hidden: true,
+    }) as HTMLInputElement;
+    expect(local.checked).toBe(true);
   });
 
   it('says the network could not be reached when reading the envelope fails, without wallet advice', async () => {

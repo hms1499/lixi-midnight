@@ -1,16 +1,19 @@
 import type { ReactNode } from 'react';
 import { Outlet } from 'react-router';
+import { WalletPanelPresenceProvider } from '../wallet/WalletPanelPresence';
 import { Footer } from './Footer';
 import { Header } from './Header';
 
 export const Layout = () => (
-  <div className="flex min-h-dvh flex-col">
-    <Header />
-    <main className="flex-1">
-      <Outlet />
-    </main>
-    <Footer />
-  </div>
+  <WalletPanelPresenceProvider>
+    <div className="flex min-h-dvh flex-col">
+      <Header />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  </WalletPanelPresenceProvider>
 );
 
 /** The width and gutters app pages use; Home lays out its own full-width sections. */

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useLocation } from 'react-router';
 import { formatBalanceDust, formatBalanceNight } from '../lib/units';
 import { useWallet } from '../wallet/WalletContext';
+import { usePagePanelShown } from '../wallet/WalletPanelPresence';
 import { MenuIcon } from './icons';
 import { Light } from './Light';
 import { Button } from './ui';
@@ -35,6 +36,7 @@ const useActiveSection = (onHome: boolean): string | undefined => {
 
 const WalletControl = () => {
   const { state, disconnect } = useWallet();
+  const pagePanel = usePagePanelShown();
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (state.status === 'connected') setOpen(false);
@@ -75,6 +77,8 @@ const WalletControl = () => {
       </span>
     );
   }
+  // The page shows its own wallet panel; a second Connect button would only compete with it (§3.8).
+  if (pagePanel) return null;
   return (
     <span className="relative">
       <Button tone="quiet" type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
@@ -82,7 +86,7 @@ const WalletControl = () => {
       </Button>
       {open && (
         <div className="absolute right-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-white/10 bg-night p-5 shadow-2xl">
-          <WalletPanel purpose="to use Lixi" />
+          <WalletPanel purpose="to use Lixi" inHeader />
         </div>
       )}
     </span>

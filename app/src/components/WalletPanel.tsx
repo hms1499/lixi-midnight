@@ -6,6 +6,7 @@ import { loadProver, saveProver } from '../lib/storage';
 import { useServices } from '../services';
 import { PROOF_SERVER_COMMAND } from '../wallet/errors';
 import { useDetectedWallets, useWallet, type ConnectedWallet } from '../wallet/WalletContext';
+import { useRegisterWalletPanel } from '../wallet/WalletPanelPresence';
 import { CopyButton } from './CopyButton';
 import { Button, Notice, Working } from './ui';
 
@@ -16,6 +17,8 @@ type PanelProps = {
   readonly cta?: (walletName: string) => string;
   /** One more line under the install steps, for this page (UX polish spec §3.4). */
   readonly hint?: ReactNode;
+  /** The header's own dropdown panel, which does not hide the header's Connect button. */
+  readonly inHeader?: boolean;
 };
 
 /** A phone with no wallet: Lixi needs the 1AM extension, so the link goes to a computer (UX polish spec §3.2). */
@@ -68,7 +71,7 @@ const InstallSteps = ({ hint }: { hint?: ReactNode }) => {
 };
 
 /** Lists the 1AM wallet, folds away where proofs are made, and connects (spec §6.6, UX polish spec §3). */
-export const WalletPanel = ({ purpose, cta = (name) => `Connect ${name}`, hint }: PanelProps) => {
+export const WalletPanel = ({ purpose, cta = (name) => `Connect ${name}`, hint, inHeader = false }: PanelProps) => {
   const { storage, isMobile } = useServices();
   const { state, connect } = useWallet();
   const wallets = useDetectedWallets();
@@ -77,6 +80,7 @@ export const WalletPanel = ({ purpose, cta = (name) => `Connect ${name}`, hint }
   const [advancedOpen] = useState(() => loadProver(storage) === 'local');
   // The header and a page can both show a panel; each needs its own radio group.
   const group = useId();
+  useRegisterWalletPanel(!inHeader);
   const choose = (p: ProverChoice) => {
     setProver(p);
     saveProver(storage, p);
