@@ -4,7 +4,7 @@
 
 Send lì xì (red envelopes) in tNIGHT as links. Each recipient opens one with a zero-knowledge proof: the link's secret never touches the chain, nobody can tell who received which lì xì, and anyone can check that an envelope is fully funded without seeing how it is split.
 
-**[Try it](https://lixi-3nv.pages.dev)** · **[Slides](SLIDES_URL)** · **[Contract on Preprod](deployments/preprod.json)** · Built for the [Midnight Buildathon](https://app.akindo.io/wave-hacks/jaMZjqPOBsLXvjdG), Wave 2.
+**[Try it](https://lixi-3nv.pages.dev)** · **[Slides](docs/slides/lixi-wave2.pdf)** · **[Contract on Preprod](deployments/preprod.json)** · Built for the [Midnight Buildathon](https://app.akindo.io/wave-hacks/jaMZjqPOBsLXvjdG), Wave 2.
 
 ## What it does
 
