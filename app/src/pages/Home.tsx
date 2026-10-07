@@ -60,7 +60,7 @@ const MOMENTS = [
 const FAQ = [
   [
     'Do I need a wallet to open a lì xì?',
-    'Yes: a Midnight wallet such as 1AM, on Preprod, with a little DUST for the fee. You can see what is inside before you connect.',
+    'Yes: the 1AM wallet, set to Preprod. 1AM pays the fee, so you need no tNIGHT or DUST. You can see what is inside before you connect.',
   ],
   [
     'What if a link leaks?',

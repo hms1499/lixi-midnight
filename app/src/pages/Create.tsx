@@ -9,6 +9,7 @@ import { FeeHint } from '../components/FeeHint';
 import { WalletPanel } from '../components/WalletPanel';
 import { Button, Notice, Working } from '../components/ui';
 import { createEnvelope, freeIndex, loadOrCreateVault } from '../flows/create';
+import { LINKS } from '../lib/links';
 import { localVaultStore } from '../lib/storage';
 import { EXPIRY_PRESETS } from '../lib/time';
 import { formatNight, parseNight } from '../lib/units';
@@ -259,7 +260,18 @@ export const Create = () => {
           </p>
           {status.error && <Notice tone="error">{status.error}</Notice>}
           {!wallet ? (
-            <WalletPanel purpose="to fund the envelope" />
+            <WalletPanel
+              purpose="to fund the envelope"
+              hint={
+                <>
+                  You need tNIGHT to fill an envelope:{' '}
+                  <a className="underline underline-offset-4" href={LINKS.faucet.href} target="_blank" rel="noreferrer">
+                    {LINKS.faucet.label}
+                  </a>
+                  .
+                </>
+              }
+            />
           ) : status.sealing ? (
             <Working>Sealing your envelope. About 30 seconds; keep this tab open.</Working>
           ) : (
@@ -272,7 +284,7 @@ export const Create = () => {
               </Button>
               {total !== undefined && (
                 <span className="text-sm text-paper-dim">
-                  Your wallet pays {formatNight(total)} tNIGHT plus a small DUST fee.
+                  Your wallet pays {formatNight(total)} tNIGHT. 1AM pays the fee.
                 </span>
               )}
             </div>

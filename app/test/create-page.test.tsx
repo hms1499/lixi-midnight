@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { backupString, deriveEnvelope } from '@lixi/sdk';
 import { formatNight } from '../src/lib/units';
@@ -123,5 +123,25 @@ describe('create and share', () => {
     expect(amounts.disabled).toBe(true);
     expect(amounts.value).toBe('equal');
     expect(screen.getByText('A group link gives the same amount to each person, one per wallet.')).toBeTruthy();
+  });
+  it('points a sender with no wallet to the faucet, and says 1AM pays the fee', async () => {
+    const user = userEvent.setup();
+    const { show, store } = setup({ detectWallets: () => [] });
+    store.save({ seed: new Uint8Array(32).fill(7), envelopes: [] });
+    store.setBackedUp(true);
+    show('/create');
+    await screen.findByText('No 1AM wallet found in this browser.');
+    // The footer has a faucet icon link too, so look inside the hint.
+    const hint = screen.getByText(/You need tNIGHT to fill an envelope/);
+    expect(within(hint).getByRole('link', { name: 'Preprod faucet' }).getAttribute('href')).toBe(
+      'https://midnight-tmnight-preprod.nethermind.dev/',
+    );
+    cleanup();
+    const withWallet = setup();
+    withWallet.store.save({ seed: new Uint8Array(32).fill(7), envelopes: [] });
+    withWallet.store.setBackedUp(true);
+    withWallet.show('/create');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await screen.findByText('Your wallet pays 10 tNIGHT. 1AM pays the fee.');
   });
 });

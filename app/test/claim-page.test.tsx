@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { claimUrl } from '@lixi/sdk';
+import { PROVER_KEY } from '../src/lib/storage';
+import { detectWallets } from '../src/wallet/connector';
 import { ORIGIN, fakeWallet, setup } from './app-harness';
 import { rnd } from './helpers';
 
@@ -54,13 +56,18 @@ describe('claim page', () => {
     await screen.findByText('1,250 tNIGHT · 0 DUST');
   });
 
-  it('names 1AM, and no other wallet, when none is installed', async () => {
-    const { show, create } = setup({ detectWallets: () => [] });
+  it('lists the steps to get 1AM when no wallet is installed, and reloads', async () => {
+    const user = userEvent.setup();
+    const reload = vi.fn();
+    const { show, create } = setup({ detectWallets: () => [], reload });
     const [link] = await create();
     show(claimUrl('', link));
-    await screen.findByText(/No Midnight wallet found in this browser/);
-    expect(screen.getByRole('link', { name: '1AM' }).getAttribute('href')).toBe('https://1am.xyz');
-    expect(screen.queryByRole('link', { name: 'Lace' })).toBeNull();
+    await screen.findByText('No 1AM wallet found in this browser.');
+    expect(screen.getByRole('link', { name: 'Install 1AM for Chrome' }).getAttribute('href')).toBe('https://1am.xyz');
+    expect(screen.getByText('Your link stays in the address bar when you reload.')).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/Lace/);
+    await user.click(screen.getByRole('button', { name: 'I installed 1AM, reload' }));
+    expect(reload).toHaveBeenCalledOnce();
   });
 
   it('says why a lì xì cannot be opened', async () => {
@@ -101,7 +108,7 @@ describe('claim page', () => {
     show(claimUrl('', link));
     await screen.findByText(/1 tNIGHT is sealed inside/);
     await user.click(screen.getByRole('button', { name: 'Connect wallet' }));
-    const radios = screen.getAllByRole('radio', { name: 'In my wallet' }) as HTMLInputElement[];
+    const radios = screen.getAllByRole('radio', { name: 'In 1AM (default)', hidden: true }) as HTMLInputElement[];
     expect(radios.map((r) => r.checked)).toEqual([true, true]);
   });
 
@@ -163,5 +170,54 @@ describe('claim page', () => {
     show(claimUrl('', link));
     await screen.findByRole('button', { name: 'Connect 1AM to open it' });
     expect(screen.queryByText('Open this on a computer.')).toBeNull();
+  });
+  it('ignores a wallet that is not 1AM, as if none were installed', async () => {
+    const { show, create } = setup({
+      detectWallets: () => detectWallets({ lace: fakeWallet({ name: 'Lace' }) }),
+    });
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByText('No 1AM wallet found in this browser.');
+  });
+
+  it('swaps the install steps for the Connect button when 1AM injects a moment late', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let injected = false;
+      const { show, create } = setup({ detectWallets: () => (injected ? [fakeWallet({ name: '1AM' })] : []) });
+      const [link] = await create();
+      show(claimUrl('', link));
+      await screen.findByText('No 1AM wallet found in this browser.');
+      injected = true;
+      await act(() => vi.advanceTimersByTimeAsync(600));
+      await screen.findByRole('button', { name: 'Connect 1AM to open it' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('says 1AM pays the fee, so opening needs no tNIGHT or DUST', async () => {
+    const { show, create } = setup();
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByText('Opening it needs the 1AM wallet. 1AM pays the fee, so you need no tNIGHT or DUST.');
+    expect(screen.queryByText(/a little DUST/)).toBeNull();
+  });
+
+  it('folds where proofs are made under Advanced, open only when the local proof server was chosen', async () => {
+    const { show, create, storage } = setup();
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByText(/1 tNIGHT is sealed inside/);
+    const details = screen.getByText('Advanced: where proofs are made').closest('details')!;
+    expect(details.open).toBe(false);
+    expect(
+      (within(details).getByRole('radio', { name: 'In 1AM (default)', hidden: true }) as HTMLInputElement).checked,
+    ).toBe(true);
+    cleanup();
+    storage.setItem(PROVER_KEY, 'local');
+    show(claimUrl('', link));
+    await screen.findByText(/1 tNIGHT is sealed inside/);
+    expect(screen.getByText('Advanced: where proofs are made').closest('details')!.open).toBe(true);
   });
 });

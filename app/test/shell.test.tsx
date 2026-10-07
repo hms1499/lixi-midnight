@@ -76,6 +76,12 @@ describe('site shell and home page', () => {
     show('/');
     for (const q of ['Do I need a wallet to open a lì xì?', 'What if a link leaks?', 'Is this real money?'])
       expect(await screen.findByText(q)).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Yes: the 1AM wallet, set to Preprod. 1AM pays the fee, so you need no tNIGHT or DUST. You can see what is inside before you connect.',
+      ),
+    ).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/Lace/);
   });
 
   it('has a friendly not-found page', async () => {

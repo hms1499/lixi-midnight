@@ -205,10 +205,13 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
               <Notice tone="warn">Less than 10 minutes are left. Opening takes about 30 seconds, so start now.</Notice>
             )}
             {phase.step === 'ready' && phase.error && <Notice tone="error">{phase.error}</Notice>}
-            <p className="text-sm text-paper-dim">Opening it needs a Midnight wallet with a little DUST for the fee.</p>
+            <p className="text-sm text-paper-dim">
+              Opening it needs the 1AM wallet. 1AM pays the fee, so you need no tNIGHT or DUST.
+            </p>
             <div className="flex justify-center text-left">
               <RequireWallet
                 purpose="to open it"
+                hint="Your link stays in the address bar when you reload."
                 cta={(name) => (wallets.length === 1 ? `Connect ${name} to open it` : `Connect ${name}`)}
               >
                 {(wallet) => (
