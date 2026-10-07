@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { claimUrl } from '@lixi/sdk';
-import { fakeWallet, setup } from './app-harness';
+import { ORIGIN, fakeWallet, setup } from './app-harness';
 import { rnd } from './helpers';
 
 afterEach(cleanup);
@@ -141,5 +141,27 @@ describe('claim page', () => {
     show(claimUrl('', link));
     await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
     await screen.findByText(/Your wallet is on another network/);
+  });
+  it('on a phone with no wallet, still shows what is inside and offers the link for a computer', async () => {
+    const user = userEvent.setup();
+    const { show, create } = setup({ detectWallets: () => [], isMobile: () => true });
+    const [link] = await create();
+    const path = claimUrl('', link);
+    show(path);
+    await screen.findByText(/1 tNIGHT is sealed inside/);
+    expect(screen.getByText('Open this on a computer.')).toBeTruthy();
+    expect(screen.queryByText(/No Midnight wallet found/)).toBeNull();
+    // Without a Clipboard API the link can still be copied by hand (Review Focus 5).
+    expect((screen.getByLabelText('Link to open on a computer') as HTMLInputElement).value).toBe(`${ORIGIN}${path}`);
+    await user.click(screen.getByRole('button', { name: 'Copy link' }));
+    expect(await navigator.clipboard.readText()).toBe(`${ORIGIN}${path}`);
+  });
+
+  it('on a phone that does have 1AM, connects as usual', async () => {
+    const { show, create } = setup({ detectWallets: () => [fakeWallet({ name: '1AM' })], isMobile: () => true });
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByRole('button', { name: 'Connect 1AM to open it' });
+    expect(screen.queryByText('Open this on a computer.')).toBeNull();
   });
 });

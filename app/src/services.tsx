@@ -13,6 +13,10 @@ export type Services = {
   /** Origin that claim links point to. */
   readonly origin: string;
   readonly detectWallets: () => InitialAPI[];
+  /** True on a phone or tablet, where no Midnight wallet extension runs (UX polish spec §3.2). */
+  readonly isMobile: () => boolean;
+  /** Reloads the page, so a wallet extension installed meanwhile can inject itself. */
+  readonly reload: () => void;
   readonly openChain: (api: ConnectedAPI, prover: ProverChoice) => Promise<LixiChain>;
 };
 

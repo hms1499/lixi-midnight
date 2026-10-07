@@ -8,6 +8,7 @@ import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { App } from './App';
 import { walletChain, publicReader } from './chain/midnight';
 import { appConfig } from './config';
+import { isMobile } from './lib/device';
 import { nowSeconds } from './lib/time';
 import { ServicesProvider, type Services } from './services';
 import { detectWallets } from './wallet/connector';
@@ -23,6 +24,8 @@ const services: Services = {
   now: nowSeconds,
   origin: window.location.origin,
   detectWallets: () => detectWallets(window.midnight),
+  isMobile: () => isMobile(navigator),
+  reload: () => window.location.reload(),
   openChain: (api, prover) => walletChain(api, config, prover),
 };
 

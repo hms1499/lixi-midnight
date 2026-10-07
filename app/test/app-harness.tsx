@@ -49,6 +49,8 @@ export const setup = (overrides: Partial<Services> = {}) => {
     now: () => sim.now,
     origin: ORIGIN,
     detectWallets: () => [fakeWallet()],
+    isMobile: () => false,
+    reload: () => undefined,
     openChain: async () => chain,
     ...overrides,
   };
