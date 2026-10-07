@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { backupString, type SenderVault } from '@lixi/sdk';
 import { CopyButton } from './CopyButton';
-import { Button, Greeting, Notice } from './ui';
+import { Button, Notice } from './ui';
 
 /** The vault's backup string, presented like a private key (Plan 1 carry-over). */
 export const BackupString = ({ vault }: { vault: SenderVault }) => {
@@ -26,13 +26,22 @@ export const BackupString = ({ vault }: { vault: SenderVault }) => {
   );
 };
 
-/** First visit to Create: the user must keep the backup string before sealing anything (spec §6.2). */
-export const BackupGate = ({ vault, onDone }: { vault: SenderVault; onDone: () => void }) => {
+/** The first Seal asks for the backup string before anything is sealed (UX polish spec §3.6). */
+export const BackupStep = ({
+  vault,
+  count,
+  onSaved,
+  onBack,
+}: {
+  vault: SenderVault;
+  count?: number;
+  onSaved: () => void;
+  onBack: () => void;
+}) => {
   const [saved, setSaved] = useState(false);
   return (
-    <div className="max-w-2xl space-y-5">
-      <Greeting>Before you seal one</Greeting>
-      <h1 className="text-4xl">Keep your backup string</h1>
+    <div className="w-full space-y-4 rounded-lg border border-white/10 p-5">
+      <h2 className="text-2xl">Keep your backup string</h2>
       <p className="text-paper-soft">
         Your envelopes are rebuilt from this one string. If this browser loses its data, it is the only way to see them
         again and bring home what nobody opened.
@@ -41,9 +50,14 @@ export const BackupGate = ({ vault, onDone }: { vault: SenderVault; onDone: () =
       <label className="flex gap-2">
         <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} />I saved my backup string
       </label>
-      <Button type="button" disabled={!saved} onClick={onDone}>
-        Continue
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <Button type="button" disabled={!saved} onClick={onSaved}>
+          Saved, seal {count ?? ''} lì xì
+        </Button>
+        <Button tone="quiet" type="button" onClick={onBack}>
+          Back
+        </Button>
+      </div>
     </div>
   );
 };

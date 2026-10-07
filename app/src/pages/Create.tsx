@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { MAX_SHARES, toHex } from '@lixi/contract';
 import { deriveEnvelope, nextIndex, type EnvelopeKind, type SenderVault, type SplitMode } from '@lixi/sdk';
-import { BackupGate } from '../components/BackupPanel';
+import { BackupStep } from '../components/BackupPanel';
 import { Page } from '../components/Layout';
 import { Light } from '../components/Light';
 import { FeeHint } from '../components/FeeHint';
@@ -117,6 +117,7 @@ export const Create = () => {
   const [split, setSplit] = useState<SplitMode>('random');
   const [duration, setDuration] = useState<number>(EXPIRY_PRESETS[1].seconds);
   const [status, setStatus] = useState<{ sealing: boolean; error?: string }>({ sealing: false });
+  const [askBackup, setAskBackup] = useState(false);
 
   // Preview the index createEnvelope will use, skipping any already on chain.
   useEffect(() => {
@@ -133,19 +134,6 @@ export const Create = () => {
         <Notice tone="error">{vault.message}</Notice>
       </Page>
     );
-  if (!backedUp)
-    return (
-      <Page>
-        <BackupGate
-          vault={vault.vault}
-          onDone={() => {
-            store.setBackedUp(true);
-            setBackedUp(true);
-          }}
-        />
-      </Page>
-    );
-
   let total: bigint | undefined;
   try {
     total = parseNight(amount);
@@ -169,8 +157,7 @@ export const Create = () => {
     preview = undefined;
   }
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const seal = async () => {
     if (!wallet || total === undefined || count === undefined) return;
     setStatus({ sealing: true });
     try {
@@ -185,6 +172,13 @@ export const Create = () => {
         .then((ledger) => setIndex(freeIndex(store.load() ?? vault.vault, ledger, store.floor())))
         .catch(() => undefined);
     }
+  };
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    // The first seal asks for the backup string first (UX polish spec §3.6).
+    if (!backedUp) setAskBackup(true);
+    else void seal();
   };
 
   // field-sizing keeps each choice as wide as its text, so the sentence reads without gaps (Chromium; others fall back).
@@ -274,6 +268,18 @@ export const Create = () => {
             />
           ) : status.sealing ? (
             <Working>Sealing your envelope. About 30 seconds; keep this tab open.</Working>
+          ) : askBackup ? (
+            <BackupStep
+              vault={vault.vault}
+              count={count}
+              onBack={() => setAskBackup(false)}
+              onSaved={() => {
+                store.setBackedUp(true);
+                setBackedUp(true);
+                setAskBackup(false);
+                void seal();
+              }}
+            />
           ) : (
             <div className="flex flex-wrap items-center gap-4">
               <div className="w-full space-y-3 empty:hidden">

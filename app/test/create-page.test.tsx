@@ -10,16 +10,12 @@ import { ORIGIN, fakeWallet, setup } from './app-harness';
 afterEach(cleanup);
 
 describe('create and share', () => {
-  it('asks for the backup first, then seals the envelope and lists one link per lì xì', async () => {
+  it('shows the form at once, asks for the backup at the first Seal, then lists one link per lì xì', async () => {
     const user = userEvent.setup();
     const { show, store } = setup();
     show('/create');
-    await screen.findByRole('heading', { name: 'Keep your backup string' });
-    expect((screen.getByLabelText('Backup string') as HTMLInputElement).value).toBe(backupString(store.load()!));
-    await user.click(screen.getByLabelText('I saved my backup string'));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-
     const total = await screen.findByLabelText('Total tNIGHT');
+    expect(screen.queryByRole('heading', { name: 'Keep your backup string' })).toBeNull();
     await user.clear(total);
     await user.type(total, '3');
     const count = screen.getByLabelText('Number of lì xì');
@@ -29,11 +25,56 @@ describe('create and share', () => {
     await user.click(screen.getByRole('button', { name: 'Connect Test Wallet' }));
     await user.click(await screen.findByRole('button', { name: 'Seal 3 lì xì' }));
 
+    await screen.findByRole('heading', { name: 'Keep your backup string' });
+    expect((screen.getByLabelText('Backup string') as HTMLInputElement).value).toBe(backupString(store.load()!));
+    expect(store.load()!.envelopes).toHaveLength(0);
+    expect((screen.getByRole('button', { name: 'Saved, seal 3 lì xì' }) as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByLabelText('I saved my backup string'));
+    await user.click(screen.getByRole('button', { name: 'Saved, seal 3 lì xì' }));
+
     await screen.findByRole('heading', { name: '3 lì xì, ready to hand out' });
+    expect(store.backedUp()).toBe(true);
     expect(screen.getAllByText('1 tNIGHT')).toHaveLength(3);
     await user.click(screen.getByRole('button', { name: 'Copy link: Lì xì 2' }));
     expect(await navigator.clipboard.readText()).toMatch(new RegExp(`^${ORIGIN}/c#v1\\.`));
     expect(screen.getByRole('button', { name: 'Copied: Lì xì 2' })).toBeTruthy();
+  });
+
+  it('Back leaves the backup step, and a later seal skips it', async () => {
+    const user = userEvent.setup();
+    const { show } = setup();
+    show('/create');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await user.click(await screen.findByRole('button', { name: 'Seal 4 lì xì' }));
+    await user.click(await screen.findByRole('button', { name: 'Back' }));
+    await user.click(screen.getByRole('button', { name: 'Seal 4 lì xì' }));
+    await user.click(await screen.findByLabelText('I saved my backup string'));
+    await user.click(screen.getByRole('button', { name: 'Saved, seal 4 lì xì' }));
+    await screen.findByRole('heading', { name: '4 lì xì, ready to hand out' });
+    cleanup();
+    show('/create');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await user.click(await screen.findByRole('button', { name: 'Seal 4 lì xì' }));
+    await screen.findByRole('heading', { name: '4 lì xì, ready to hand out' });
+  });
+
+  it('keeps the backup done when the wallet declines the first seal (Review Focus 2)', async () => {
+    const user = userEvent.setup();
+    const { show, chain, store } = setup();
+    const realCreate = chain.create;
+    chain.create = async () => {
+      chain.create = realCreate;
+      throw new Error('Rejected');
+    };
+    show('/create');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await user.click(await screen.findByRole('button', { name: 'Seal 4 lì xì' }));
+    await user.click(await screen.findByLabelText('I saved my backup string'));
+    await user.click(screen.getByRole('button', { name: 'Saved, seal 4 lì xì' }));
+    await screen.findByText(/^Rejected/);
+    expect(store.backedUp()).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Seal 4 lì xì' }));
+    await screen.findByRole('heading', { name: '4 lì xì, ready to hand out' });
   });
 
   it('warns before sealing when the wallet shows less tNIGHT than the envelope, without blocking', async () => {
@@ -41,8 +82,6 @@ describe('create and share', () => {
     const wallet = fakeWallet({ name: '1AM', balances: () => ({ night: 2_500_000n, dust: 10n ** 15n }) });
     const { show } = setup({ detectWallets: () => [wallet] });
     show('/create');
-    await user.click(await screen.findByLabelText('I saved my backup string'));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
     const total = await screen.findByLabelText('Total tNIGHT');
     await user.clear(total);
     await user.type(total, '3');
