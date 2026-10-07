@@ -43,8 +43,10 @@ export const Share = () => {
     let live = true;
     services.reader
       .readLedger()
-      .then((ledger) => live && setOnChain(ledger.envelopes.member(envelopeId)))
-      .catch(() => live && setOnChain(READ_FAILED));
+      // Once found, it stays found: a slower read cannot take the links away again.
+      .then((ledger) => live && setOnChain((was) => was === true || ledger.envelopes.member(envelopeId)))
+      // Only a failed first look is an error; a failed Check again keeps the page where it was.
+      .catch(() => live && setOnChain((was) => (was === undefined || typeof was === 'string' ? READ_FAILED : was)));
     return () => {
       live = false;
     };
@@ -83,7 +85,12 @@ export const Share = () => {
   if (typeof onChain === 'string')
     return (
       <Page>
-        <Notice tone="error">{onChain}</Notice>
+        <div className="space-y-4">
+          <Notice tone="error">{onChain}</Notice>
+          <Button tone="quiet" type="button" onClick={() => setAttempt((n) => n + 1)}>
+            Check again
+          </Button>
+        </div>
       </Page>
     );
   if (!onChain)

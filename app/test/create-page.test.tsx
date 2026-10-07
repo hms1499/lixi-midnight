@@ -234,4 +234,35 @@ describe('create and share', () => {
       vi.useRealTimers();
     }
   });
+  it('a failed Check again keeps the page on its way, and a failed first read can be tried again', async () => {
+    const user = userEvent.setup();
+    let mode: 'notYet' | 'fail' | 'real' = 'notYet';
+    const notYet = { envelopes: { member: () => false } } as unknown as Ledger;
+    let real: () => Promise<Ledger> = async () => notYet;
+    const { show, create, chain, store } = setup({
+      reader: {
+        readLedger: async () => {
+          if (mode === 'fail') throw new TypeError('Failed to fetch');
+          return mode === 'real' ? real() : notYet;
+        },
+      },
+    });
+    real = () => chain.readLedger();
+    await create();
+    const vault = store.load()!;
+    const path = `/share/${toHex(deriveEnvelope(vault.seed, vault.envelopes[0]).id)}`;
+    show(path);
+    await screen.findByText('Your envelope is on its way to the chain…');
+    mode = 'fail';
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(screen.getByText('Your envelope is on its way to the chain…')).toBeTruthy();
+
+    cleanup();
+    show(path);
+    await screen.findByText('Lixi could not reach the Midnight network. Check your connection, then reload the page.');
+    mode = 'real';
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await screen.findByRole('heading', { name: '2 lì xì, ready to hand out' });
+  });
 });
