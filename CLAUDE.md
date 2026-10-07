@@ -40,7 +40,7 @@ Lixi: private red envelopes on Midnight (Midnight Buildathon entry).
 - `claim` only reads the envelope and never writes it, so concurrent claims don't conflict.
 - Times are unix **seconds**. Amounts are `bigint` base units, and each share must fit in `Uint<64>`.
 - Secrets (the seed and share secrets) never appear in logs or error messages. Link secrets live only in the URL fragment.
-- The CSP is defined twice: `app/src/csp.ts` (meta tag in the built page) and `app/vercel.json` (header). `app/test/config.test.ts` keeps them equal; a new host the page talks to goes into both.
+- The CSP is defined twice: `app/src/csp.ts` (meta tag in the built page) and `app/public/_headers` (header on Cloudflare Pages). `app/test/config.test.ts` keeps them equal; a new host the page talks to goes into both.
 - Preprod goes through Blockfrost, because Midnight is shutting down its official Preprod indexer and RPC (midnight-wallet#781).
   - `NETWORKS.preprod` holds the bare URLs, which the CSP lists. `networkConfig` adds `?project_id=`.
   - The CLI reads `BLOCKFROST_PROJECT_ID` from `cli/.env`. The app reads `VITE_BLOCKFROST_PROJECT_ID` at build time from gitignored `app/.env.local`. CI builds with the placeholder `ci-build-check`, because it never uses the page. Without it, the build and the dev server stop. The id ships in the page.

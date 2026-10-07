@@ -339,7 +339,7 @@ The UI is in English; the Vietnamese lì xì story is the theme.
 | T11 | Group link mode | T9 | Should | Claude | C |
 | T12 | Second wallet path | T7, S4 | Should | Claude | C |
 | T13 | CI workflow | T3, T4a | Should | Claude | E |
-| T14 | Vercel deploy (after confirmation) | T8–T10 | Should | Claude | E |
+| T14 | Cloudflare Pages deploy (after confirmation; was Vercel, changed 2026-10-07) | T8–T10 | Should | Claude | E |
 | T15 | README, architecture diagram, privacy model, audit notes | T2 (draft), T6 (final) | Must | Claude | E |
 | T16 | Slide deck | T15 | Must | Claude | E |
 | T17 | Demo video script (Claude); recording and voice-over (User) | T6, T8–T10 | Must | Both | E |

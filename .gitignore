@@ -13,4 +13,4 @@ cli/.wallet-cache/
 .superpowers/
 app/public/keys/
 app/public/zkir/
-.vercel/
+.wrangler/

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { appConfig } from '../src/config';
 import { cspFor } from '../src/csp';
@@ -38,9 +38,14 @@ describe('CSP', () => {
     expect(policy).not.toMatch(/'unsafe-inline'|'unsafe-eval'|\*|project_id/);
   });
 
-  it('is the same policy the Vercel deployment sends as a header, plus frame-ancestors', () => {
-    const vercel = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
-    const header = vercel.headers[0].headers.find((h: { key: string }) => h.key === 'Content-Security-Policy');
-    expect(header.value).toBe(`${cspFor('preprod')}; frame-ancestors 'none'`);
+  it('is the same policy Cloudflare Pages sends as a header for every path, plus frame-ancestors', () => {
+    const headers = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8').split('\n');
+    expect(headers[0]).toBe('/*');
+    const value = (name: string) =>
+      headers.find((line) => line.startsWith(`  ${name}: `))?.slice(`  ${name}: `.length);
+    expect(value('Content-Security-Policy')).toBe(`${cspFor('preprod')}; frame-ancestors 'none'`);
+    expect(value('Referrer-Policy')).toBe('no-referrer');
+    expect(value('X-Content-Type-Options')).toBe('nosniff');
+    expect(existsSync(new URL('../vercel.json', import.meta.url))).toBe(false);
   });
 });
