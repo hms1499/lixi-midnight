@@ -119,17 +119,17 @@ export type ClaimTxArgs = {
   readonly recipient: Uint8Array;
 };
 
-/** Proves and submits `claim`, paying the share to `recipient`. */
+/** Proves and submits `claim`, paying the share to `recipient`. Resolves to the transaction hash, which explorers look up. */
 export const claimTx = async (providers: LixiProviders, address: string, args: ClaimTxArgs): Promise<string> => {
   const tx = await submitCallTx(providers, {
     ...(await callOptions(providers, address, emptyPrivateState())),
     circuitId: 'claim',
     args: [args.id, args.share, args.path, { bytes: args.recipient }],
   });
-  return tx.public.txId;
+  return tx.public.txHash;
 };
 
-/** Proves and submits `refund`. `privateState` must hold this envelope's 16 shares. */
+/** Proves and submits `refund`. `privateState` must hold this envelope's 16 shares. Resolves to the transaction hash. */
 export const refundTx = async (
   providers: LixiProviders,
   address: string,
@@ -141,7 +141,7 @@ export const refundTx = async (
     circuitId: 'refund',
     args: [id],
   });
-  return tx.public.txId;
+  return tx.public.txHash;
 };
 
 /**

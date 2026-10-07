@@ -23,7 +23,7 @@
 - **Services.** Pages reach the outside world only through `Services` (`app/src/services.tsx`). That covers `navigator`, `location.reload` and the clipboard. `CopyButton` already uses the clipboard, so it stays as it is.
 - **The CSP is defined twice:** in `app/src/csp.ts` and in `app/vercel.json`. `app/test/config.test.ts` keeps them equal.
 - **Secrets.** Link secrets and the seed never appear in logs or error text.
-- **Unchanged layers.** No change to `contract/`, `sdk/` or `cli/`.
+- **Unchanged layers.** No change to `contract/`, `sdk/` or `cli/`. (Amended by the final review: `claimTx` and `refundTx` return the hash; see spec §3.9.)
 - **Copy.** Copy is English. Wallet text names 1AM only, and the word "Lace" must not appear in any rendered page.
 - **Branch.** Work on `feat/ux-polish`, which already holds the spec commit `fd1c652`.
 - **Commits.** Use conventional commits, each ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.

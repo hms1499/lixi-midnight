@@ -61,8 +61,8 @@ try {
     const ledger = await readLedger(providers.publicDataProvider, contractAddress);
     const check = checkClaim(ledger, link, me, Math.floor(Date.now() / 1000));
     if (!check.ok) throw new Error(`pre-check failed: ${check.reason}`);
-    const claimId = await claimTx(providers, contractAddress, { ...link, recipient: me });
-    console.log(`claim tx: ${claimId} (${check.amount} base units)`);
+    const claimHash = await claimTx(providers, contractAddress, { ...link, recipient: me });
+    console.log(`claim tx hash: ${claimHash} (${check.amount} base units)`);
   }
   console.log(`envelope id: ${Buffer.from(envelope.id).toString('hex')}`);
 } finally {

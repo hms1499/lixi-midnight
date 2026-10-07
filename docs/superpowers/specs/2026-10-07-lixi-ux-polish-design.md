@@ -2,7 +2,7 @@
 
 **Design spec · 2026-10-07 · Status: approved in chat, pending written-spec review**
 
-**Parent specs:** `docs/superpowers/specs/2026-09-30-lixi-design.md` (screens §4.5, errors §4.6, CSP §6) and `docs/superpowers/specs/2026-10-02-lixi-frontend-design.md` (look and motion). This spec changes the wallet support, some copy, and the flow on four pages. It changes nothing in the contract, the SDK, the colours or the motion.
+**Parent specs:** `docs/superpowers/specs/2026-09-30-lixi-design.md` (screens §4.5, errors §4.6, CSP §6) and `docs/superpowers/specs/2026-10-02-lixi-frontend-design.md` (look and motion). This spec changes the wallet support, some copy, and the flow on four pages. It changes nothing in the contract, the colours or the motion. In the SDK, only `claimTx` and `refundTx` change: they now return the transaction hash (§3.9).
 
 ---
 
@@ -114,8 +114,9 @@ Each page adds one line, through a new optional `WalletPanel` prop `hint`:
   - After a claim succeeds, the opened page shows **View transaction**.
   - After a refund succeeds, the row shows **View transaction** next to "Came home: …", for that page session only. The id is not stored.
 - **Which explorer.** `preprod.midnightexplorer.com` opens a transaction at `/transactions/0x<hash>`. That was checked on 2026-10-07 with a Lixi transaction, and its 33-byte identifier gave a 404.
-- **How the app gets the hash.** The flows get midnight-js's *identifier*, not the hash. After a claim or refund lands, `walletChain` asks the indexer for the finalized transaction (`publicDataProvider.watchForTxData(identifier)`) and returns its `txHash`. So `LixiChain.claim` and `refund` resolve to the hash. The SDK is unchanged.
-- **Fallback.** The lookup gives up after 15 s, and returns `''` on a timeout or an error. An empty hash shows no link, and so does a claim that landed while the wallet call failed. Either way, the transaction itself has already landed.
+- **How the app gets the hash.** `submitCallTx` already returns the finalized transaction, `txHash` included. The SDK's `claimTx` and `refundTx` now return `tx.public.txHash` instead of the identifier, so `LixiChain.claim` and `refund` resolve to the hash with no extra indexer call.
+- **History.** The first version asked the indexer for the hash (`watchForTxData`) and gave up after 15 s. The final review found that midnight-js keeps polling once a second after such a timeout, which would drain the shared Blockfrost quota. That was replaced on 2026-10-07.
+- **No link.** A claim that landed while the wallet call failed has no hash (`''`) and shows no link.
 - **The URL builder.** `txUrl(hash)` goes in `app/src/lib/links.ts`, next to an `EXPLORER` constant. The explorer is not in `LINKS`, because every entry there is a footer icon.
 - **CSP.** The link is a navigation, not a fetch, so the CSP is unaffected.
 
@@ -125,7 +126,7 @@ Each page adds one line, through a new optional `WalletPanel` prop `hint`:
 - Any 1AM-mobile path.
 - A Vercel deploy (Plan 3 Task 12 stays deferred).
 - Copy in Vietnamese.
-- Any change to the contract, the SDK or the CLI.
+- Any change to the contract, or to the SDK and CLI beyond `claimTx`/`refundTx` returning the transaction hash (§3.9).
 
 ## 5. Testing
 
