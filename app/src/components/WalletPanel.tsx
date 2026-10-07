@@ -76,8 +76,9 @@ export const WalletPanel = ({ purpose, cta = (name) => `Connect ${name}`, hint, 
   const { state, connect } = useWallet();
   const wallets = useDetectedWallets();
   const [prover, setProver] = useState<ProverChoice>(() => loadProver(storage));
-  // Open at first only for someone who chose the local proof server; after that the user opens and closes it.
-  const [advancedOpen] = useState(() => loadProver(storage) === 'local');
+  // Open at first only for someone who chose the local proof server; after that it follows the user, and it
+  // survives the connect attempt, which swaps the panel for "Approve the connection" and back.
+  const [advancedOpen, setAdvancedOpen] = useState(() => loadProver(storage) === 'local');
   // The header and a page can both show a panel; each needs its own radio group.
   const group = useId();
   useRegisterWalletPanel(!inHeader);
@@ -100,7 +101,11 @@ export const WalletPanel = ({ purpose, cta = (name) => `Connect ${name}`, hint, 
           </Button>
         ))}
       </div>
-      <details open={advancedOpen} className="text-sm text-paper-soft">
+      <details
+        open={advancedOpen}
+        onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
+        className="text-sm text-paper-soft"
+      >
         <summary className="cursor-pointer">Advanced: where proofs are made</summary>
         <fieldset className="mt-2 space-y-1">
           <legend className="sr-only">Where proofs are made</legend>

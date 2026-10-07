@@ -260,4 +260,21 @@ describe('claim page', () => {
     await screen.findByText('It is in your wallet. The link’s secret never touched the chain.');
     expect(screen.queryByRole('link', { name: 'View transaction' })).toBeNull();
   });
+  it('keeps Advanced open after a failed connect, so the prover choice it points to stays in view', async () => {
+    const user = userEvent.setup();
+    const failing = {
+      ...fakeWallet({ name: '1AM' }),
+      connect: () => Promise.reject(new Error('proof server unreachable')),
+    };
+    const { show, create } = setup({ detectWallets: () => [failing] });
+    const [link] = await create();
+    show(claimUrl('', link));
+    await screen.findByText(/1 tNIGHT is sealed inside/);
+    const details = screen.getByText('Advanced: where proofs are made').closest('details')!;
+    details.open = true;
+    fireEvent(details, new Event('toggle'));
+    await user.click(screen.getByRole('button', { name: 'Connect 1AM to open it' }));
+    await screen.findByText(/The local proof server is not running/);
+    expect(screen.getByText('Advanced: where proofs are made').closest('details')!.open).toBe(true);
+  });
 });
