@@ -108,7 +108,11 @@ export const useWallet = (): WalletContextValue => {
   return value;
 };
 
-/** Injected wallets. Extensions can inject a moment after page load, so look again for a few seconds. */
+/** How long to keep looking for an extension that injects after page load: a cold start can take several seconds. */
+const DETECT_EVERY_MS = 500;
+const DETECT_FOR_MS = 30_000;
+
+/** Injected wallets. Extensions can inject after page load, so look again for a while. */
 export const useDetectedWallets = (): InitialAPI[] => {
   const { detectWallets } = useServices();
   const [wallets, setWallets] = useState(detectWallets);
@@ -117,9 +121,9 @@ export const useDetectedWallets = (): InitialAPI[] => {
     let tries = 0;
     const timer = setInterval(() => {
       const found = detectWallets();
-      if (found.length > 0 || ++tries >= 6) clearInterval(timer);
+      if (found.length > 0 || ++tries >= DETECT_FOR_MS / DETECT_EVERY_MS) clearInterval(timer);
       if (found.length > 0) setWallets(found);
-    }, 500);
+    }, DETECT_EVERY_MS);
     return () => clearInterval(timer);
   }, [detectWallets, wallets.length]);
   return wallets;

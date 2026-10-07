@@ -297,4 +297,20 @@ describe('claim page', () => {
     await screen.findByRole('heading', { name: /Every light is one lì xì/ });
     expect(screen.queryByText('Connect your 1AM wallet to use Lixi.')).toBeNull();
   });
+  it('still finds 1AM when its extension injects several seconds after the page loaded', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let injected = false;
+      const { show, create } = setup({ detectWallets: () => (injected ? [fakeWallet({ name: '1AM' })] : []) });
+      const [link] = await create();
+      show(claimUrl('', link));
+      await screen.findByText('No 1AM wallet found in this browser.');
+      await act(() => vi.advanceTimersByTimeAsync(8_000));
+      injected = true;
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      await screen.findByRole('button', { name: 'Connect 1AM to open it' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
