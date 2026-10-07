@@ -41,8 +41,7 @@ describe('CSP', () => {
   it('is the same policy Cloudflare Pages sends as a header for every path, plus frame-ancestors', () => {
     const headers = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8').split('\n');
     expect(headers[0]).toBe('/*');
-    const value = (name: string) =>
-      headers.find((line) => line.startsWith(`  ${name}: `))?.slice(`  ${name}: `.length);
+    const value = (name: string) => headers.find((line) => line.startsWith(`  ${name}: `))?.slice(`  ${name}: `.length);
     expect(value('Content-Security-Policy')).toBe(`${cspFor('preprod')}; frame-ancestors 'none'`);
     expect(value('Referrer-Policy')).toBe('no-referrer');
     expect(value('X-Content-Type-Options')).toBe('nosniff');
