@@ -40,7 +40,7 @@ Already in place:
 |---|---|
 | Live demo | **Cloudflare Pages, free plan.** Static assets have no bandwidth limit. The site fits the limits: 22 files, the largest 9.7 MB against a 25 MiB cap, and a 294-character CSP against a 2,000-character cap. Netlify's free plan pauses every site once its 300 credits run out. Vercel would mean another account; the user preferred Cloudflare. |
 | Slide deck | **The claude.ai Slides artifact type.** It has a share link for the submission and downloads as PPTX/PDF. |
-| Video | **The user records it and writes it.** This plan only leaves a place for the link in the README, the deck and the submission text. |
+| Video | **The user records it and writes it.** This plan only leaves a place for the link in the deck and the submission text; the README has no video link. |
 | Submission | Claude drafts every field. The user pastes them into AKINDO and submits. |
 
 ## 3. Deliverables
@@ -72,7 +72,7 @@ Already in place:
 ### 3.2 README rewrite
 
 `README.md` is rewritten to meet AKINDO §6 and acceptance criterion 4, so a judge goes from clone to passing tests in under 10 minutes. Its sections, in order:
-1. **One-line pitch and links:** **Try it** (the Pages URL), **Video** (`<!-- VIDEO_URL -->`, filled in by the user), **Slides** (the claude.ai share link), and **Contract on Preprod** (`deployments/preprod.json`).
+1. **One-line pitch and links:** **Try it** (the Pages URL), **Slides** (the claude.ai share link), and **Contract on Preprod** (`deployments/preprod.json`). No video link: the video goes only in the deck and the submission.
 2. **What it does:** the sender seals tNIGHT into up to 16 lì xì and shares links; recipients open them with a ZK proof; what nobody opens goes back to the sender after the expiry. Personal and group links.
 3. **Try it in 2 minutes:** Chrome on a computer and 1AM on Preprod. 1AM pays the fee. Faucet link.
 4. **Test it in 10 minutes, no wallet:** prerequisites (Node 24, Compact 0.31.1), then `npm ci && npm test`. A table of the suites and their counts at the time of writing: contract 32, sdk 44, cli 19, app 114. CI badge.
