@@ -113,13 +113,10 @@ Each page adds one line, through a new optional `WalletPanel` prop `hint`:
 - **Where the link shows.**
   - After a claim succeeds, the opened page shows **View transaction**.
   - After a refund succeeds, the row shows **View transaction** next to "Came home: …", for that page session only. The id is not stored.
-- **Which explorer.** The flows return midnight-js's 33-byte transaction *identifier*, not the hash. So the plan's first task checks which Preprod explorer finds a transaction by that identifier:
-  - `preprod.midnightexplorer.com`;
-  - `midnight-preprod.subscan.io`;
-  - `explorer.1am.xyz/?network=preprod`.
-
-  It tests with a real Lixi transaction. The URL builder goes in `app/src/lib/links.ts` (`txUrl(id)`), with the explorer in `LINKS`.
-- **Fallback.** If no explorer resolves an identifier, this item is dropped: the plan records that, and no link ships. An empty `txId` (a claim that landed while the wallet call failed) shows no link.
+- **Which explorer.** `preprod.midnightexplorer.com` opens a transaction at `/transactions/0x<hash>`. That was checked on 2026-10-07 with a Lixi transaction, and its 33-byte identifier gave a 404.
+- **How the app gets the hash.** The flows get midnight-js's *identifier*, not the hash. After a claim or refund lands, `walletChain` asks the indexer for the finalized transaction (`publicDataProvider.watchForTxData(identifier)`) and returns its `txHash`. So `LixiChain.claim` and `refund` resolve to the hash. The SDK is unchanged.
+- **Fallback.** The lookup gives up after 15 s, and returns `''` on a timeout or an error. An empty hash shows no link, and so does a claim that landed while the wallet call failed. Either way, the transaction itself has already landed.
+- **The URL builder.** `txUrl(hash)` goes in `app/src/lib/links.ts`, next to an `EXPLORER` constant. The explorer is not in `LINKS`, because every entry there is a footer icon.
 - **CSP.** The link is a navigation, not a fetch, so the CSP is unaffected.
 
 ## 4. Out of scope
@@ -145,7 +142,7 @@ App page tests (`// @vitest-environment jsdom`, `app/test/app-harness.tsx`):
 - **Share polling (fake timers):** a not-yet-on-chain envelope becomes the links view without a click. The slow message shows after 120 s.
 - **Dashboard empty:** there is no view toggle, no backup box, and one restore button.
 - **Header:** **Connect wallet** is hidden on `/create` and on a claim link while not connected, and shown on `/`.
-- **Transaction link:** only if §3.9 keeps it. The opened page links to `txUrl(id)`. An empty id shows no link.
+- **Transaction link:** the opened page links to `txUrl(hash)`. An empty hash shows no link.
 - **CSP:** `config.test.ts` still keeps `csp.ts` and `vercel.json` equal, now without `localhost`.
 - **Device:** `isMobile` unit tests cover Android, iPhone, an iPad reporting a Mac UA, and desktop Chrome.
 
