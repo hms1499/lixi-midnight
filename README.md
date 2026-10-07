@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/hms1499/lixi-midnight/actions/workflows/ci.yml/badge.svg)](https://github.com/hms1499/lixi-midnight/actions/workflows/ci.yml)
 
-Send lì xì (red envelopes) in tNIGHT as links. Each recipient opens one with a zero-knowledge proof: the link's secret never touches the chain, nobody can tell who received which lì xì, and anyone can check that an envelope is fully funded without seeing how it is split.
+Send lì xì (red envelopes) in tNIGHT as links. Each recipient opens one with a zero-knowledge proof: the link's secret never touches the chain, nobody watching the chain can tell which link paid an opening, and anyone can check that an envelope is fully funded without seeing how a personal envelope is split.
 
 **[Try it](https://lixi-3nv.pages.dev)** · **[Slides](docs/slides/lixi-wave2.pdf)** · **[Contract on Preprod](deployments/preprod.json)** · Built for the [Midnight Buildathon](https://app.akindo.io/wave-hacks/jaMZjqPOBsLXvjdG), Wave 2.
 
@@ -30,19 +30,20 @@ Prerequisites: Node 24 (`nvm use`) and the Compact toolchain with compiler 0.31.
 
 ```bash
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
+export PATH="$HOME/.local/bin:$PATH"   # where the installer puts compact
 compact update 0.31.1
 npm ci
-npm test   # compiles the contract, then runs every suite against the real compiled contract
+npm test   # compiles the contract, then runs every suite; contract, SDK and app tests use the real compiled contract
 ```
 
 | Suite | Tests | What it covers |
 |---|---:|---|
-| `contract` | 32 | The Compact contract in the simulator: funding, Merkle paths, nullifiers, group limits, expiry, refund, forged proofs |
+| `contract` | 32 | The Compact contract in the simulator: funding, Merkle paths, nullifiers, group limits, expiry, refund, forged Merkle paths and tampered shares |
 | `sdk` | 44 | Seed derivation, splits, link encoding, Merkle trees, the sender vault, recovery, pre-checks |
-| `cli` | 19 | Deploy, smoke and sponsor scripts, wallet cache, secret and output redaction |
+| `cli` | 19 | Network config, sync progress, wallet cache, secret and output redaction (the chain scripts themselves run in the devnet suite) |
 | `app` | 114 | Every page in jsdom against the compiled contract: create, share, claim, dashboard, refund, CSP |
 
-CI runs all of them, plus the full compile with proving keys, on every push. A separate workflow runs a devnet end-to-end test (deploy → concurrent claims → refund) with Docker: `npm run test:devnet -w @lixi/cli`.
+CI runs all of them, plus the full compile with proving keys, on every push. A separate workflow runs the devnet end-to-end suite (deploy → concurrent claims from different wallets → sponsored claim → refund) against a local node; start it with the Docker command under [Develop](#develop), then run `npm run test:devnet -w @lixi/cli`.
 
 ## Architecture
 
@@ -69,21 +70,21 @@ flowchart LR
 
 ## How it uses Midnight
 
-- **One Compact contract** holds every envelope: `createEnvelope`, `claim` and `refund`. Its ledger stores, per envelope, only a Merkle root, the deposit, the expiry, the refund address and the group flag, plus a set of spent nullifiers and, for group links, a set of address keys.
-- **Private state stays private.** The split lives in the sender's browser. A claim takes the share and its Merkle path as private witnesses; the circuit checks the path against the root, spends a one-time nullifier, and pays the share out. The chain never learns the secret, the number of lì xì or the other amounts.
+- **One Compact contract** holds every envelope: `createEnvelope`, `claim` and `refund`. Its ledger stores, per envelope, a Merkle root, the deposit, the expiry, the refund address, the group flag and whether it was refunded, plus a set of spent nullifiers, a set of address keys for group links, and the allowed expiry range.
+- **Private state stays private.** The split lives in the sender's browser. A claim takes the share and its Merkle path as private witnesses; the circuit checks the path against the root, spends a one-time nullifier, and pays the share out. The chain never learns the secret, which link paid, or, for personal links, how many lì xì there are and what the unopened ones hold.
 - **Dual ledger.** The proof and the checks run over private data; the payout is an unshielded tNIGHT output to the recipient's address, so the transfer itself is public while the link stays secret.
 - **Hashing is deliberate.** Envelope ids use `persistentHash`; leaves, nodes, nullifiers and address keys use `transientHash` (Poseidon) with domain tags, and off-chain code calls the compiled circuits instead of reimplementing them.
-- **Proving never goes to a shared server.** Proofs are made in 1AM, or by a proof server on your own machine (choose "On this computer" under Advanced).
+- **Proving.** Proofs are made in 1AM by default (where 1AM proves is not yet verified; see Limitations), or by a proof server on your own machine (choose "On this computer" under Advanced). Lixi itself never sends a proof to a shared server.
 - **No admin key.** Every deployment gives up its maintenance authority, so nobody can change the contract.
 
 ## Privacy model
 
 | The chain sees | It never sees |
 |---|---|
-| that an envelope exists, its total and its expiry | how many lì xì there are, or the size of each |
-| whether it uses a group link | who the links went to |
-| the sender's address | the secrets inside the links |
-| each opening: who received, and how much | which lì xì are still unopened |
+| that an envelope exists, its total and its expiry | how many lì xì a personal envelope holds |
+| whether it uses a group link | the sizes of the lì xì nobody has opened |
+| the sender's address | which link paid which opening |
+| each opening: who received, and how much | the secrets inside the links |
 
 A link works like cash: whoever opens it first gets that lì xì. Its secret lives only in the URL fragment, which browsers never send to a server.
 
@@ -100,7 +101,7 @@ A link works like cash: whoever opens it first gets that lì xì. Its secret liv
 - **Where 1AM proves is unverified.** If it proves on its own servers, those servers see the claim secret; choose the local proof server to avoid that.
 - **The Blockfrost project id ships in the page**, as any browser-side Blockfrost id does.
 - **Payouts are unshielded**, so each opening is public.
-- **Group links:** one person with many wallets can open several lì xì.
+- **Group links:** one person with many wallets can open several lì xì, and because a group splits equally, the first opening reveals how many there are.
 
 ## Roadmap (Wave 3)
 

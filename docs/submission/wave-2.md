@@ -12,13 +12,13 @@ Private red envelopes (lì xì) on Midnight: every link is one lì xì, and only
 
 ## Description
 
-On-chain red packets exist on EVM, Solana and BSC, but all of them are public: every amount, every recipient and the whole split are on chain. Lixi brings the Vietnamese lì xì to Midnight with the privacy it has in real life.
+On-chain red packets exist on EVM, Solana and BSC, but all of them are public: the whole split and every claim code are on chain. Lixi brings the Vietnamese lì xì to Midnight with more of the privacy it has in real life: openings are public payouts, but nobody watching the chain can tell which link paid one, how many lì xì a personal envelope holds, or what the unopened ones contain.
 
 A sender seals tNIGHT into an envelope of up to 16 lì xì (lucky or equal amounts) and shares one link per lì xì, or one group link. A recipient opens a link, sees what is inside, connects 1AM and opens it with a zero-knowledge proof: the proof shows they hold a valid lì xì without saying which, a one-time nullifier stops the link paying twice, and the tNIGHT lands in their wallet. After the expiry the sender brings everything unopened home in one transaction.
 
-Midnight integration: one Compact contract (`createEnvelope`, `claim`, `refund`) keeps only a Merkle root, the deposit and the expiry per envelope. The split and the link secrets stay in the browser as private witnesses; payouts are unshielded tNIGHT, so the transfer is public while the link stays secret. Proofs are made in 1AM or by a local proof server, never a shared one, and the contract's maintenance authority is given up at deploy.
+Midnight integration: one Compact contract (`createEnvelope`, `claim`, `refund`) keeps, per envelope, a Merkle root, the deposit, the expiry, the refund address and the group flag; never the split or the link secrets. The split and the link secrets stay in the browser as private witnesses; payouts are unshielded tNIGHT, so the transfer is public while the link stays secret. Proofs are made in 1AM by default or by a proof server on the user's own machine, and the contract's maintenance authority is given up at deploy.
 
-What works end to end on Preprod: sealing, personal and group links, opening from several wallets, refusing a second opening, and bringing unopened lì xì home after expiry. 209 tests across the contract, SDK, CLI and app run in CI on every push, plus a devnet end-to-end workflow.
+What works end to end on Preprod: sealing, personal and group links, opening, refusing a second opening from the same wallet, and bringing unopened lì xì home after expiry. Concurrent claims from different wallets are covered by the devnet end-to-end suite. 209 tests across the contract, SDK, CLI and app run in CI on every push, plus a devnet end-to-end workflow.
 
 ## Links
 

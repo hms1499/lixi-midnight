@@ -30,10 +30,10 @@ const SEEN = [
   'each opening: who received, and how much',
 ];
 const DARK = [
-  'how many lì xì, and the size of each',
-  'who the links went to',
+  'how many lì xì a personal envelope holds',
+  'the sizes of the lì xì nobody has opened',
+  'which link paid which opening',
   'the secrets inside the links',
-  'which lì xì are still unopened',
 ];
 
 const FLOW = [

@@ -82,6 +82,10 @@ describe('site shell and home page', () => {
       ),
     ).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/Lace/);
+    // The privacy list must not claim more than the contract hides: opened amounts are public (UX polish review).
+    expect(screen.getByText('how many lì xì a personal envelope holds')).toBeTruthy();
+    expect(screen.getByText('which link paid which opening')).toBeTruthy();
+    expect(screen.queryByText('how many lì xì, and the size of each')).toBeNull();
   });
 
   it('has a friendly not-found page', async () => {
