@@ -11,7 +11,7 @@ import {
 import type { LixiChain, LixiReader } from '../chain/port';
 import type { VaultStore } from '../lib/storage';
 
-export type RefundResult = { readonly ok: true; readonly txId: string } | Extract<RefundCheck, { ok: false }>;
+export type RefundResult = { readonly ok: true; readonly txHash: string } | Extract<RefundCheck, { ok: false }>;
 
 /** Refunds the unclaimed rest of a vault envelope to its refund address, after the same checks the contract runs. */
 export const refundEnvelope = async (
@@ -25,7 +25,7 @@ export const refundEnvelope = async (
   const { id } = deriveEnvelope(vault.seed, saved);
   const check = checkRefund(await chain.readLedger(), id, now);
   if (!check.ok) return check;
-  return { ok: true, txId: await chain.refund(privateStateOf(vault), id) };
+  return { ok: true, txHash: await chain.refund(privateStateOf(vault), id) };
 };
 
 /** Drops a vault entry whose envelope never reached the chain, and keeps its index from being sealed again. */

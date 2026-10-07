@@ -8,6 +8,7 @@ import { FeeHint } from '../components/FeeHint';
 import { RequireWallet } from '../components/WalletPanel';
 import { Button, ButtonLink, Greeting, Notice } from '../components/ui';
 import { claimWithLink, previewClaim, type ClaimPreview, type ClaimRefusal } from '../flows/claim';
+import { txUrl } from '../lib/links';
 import { formatNight } from '../lib/units';
 import { useServices } from '../services';
 import { READ_FAILED, friendlyError } from '../wallet/errors';
@@ -106,7 +107,7 @@ type Phase =
   | { readonly step: 'checking' }
   | { readonly step: 'ready'; readonly preview: Extract<ClaimPreview, { ok: true }>; readonly error?: string }
   | { readonly step: 'opening' }
-  | { readonly step: 'opened'; readonly amount: bigint }
+  | { readonly step: 'opened'; readonly amount: bigint; readonly txHash: string }
   | { readonly step: 'refused'; readonly reason: ClaimRefusal }
   | { readonly step: 'failed'; readonly message: string };
 
@@ -154,6 +155,16 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
           {formatNight(phase.amount)} <span className="text-xl font-normal text-paper">tNIGHT</span>
         </h1>
         <p className="text-paper-soft">It is in your wallet. The link’s secret never touched the chain.</p>
+        {phase.txHash && (
+          <a
+            className="block text-sm underline underline-offset-4"
+            href={txUrl(phase.txHash)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View transaction
+          </a>
+        )}
         <ButtonLink to="/create" tone="quiet">
           Send lì xì of your own
         </ButtonLink>
@@ -169,7 +180,11 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
     setPhase({ step: 'opening' });
     try {
       const result = await claimWithLink(chain, link, recipient, services.now);
-      setPhase(result.ok ? { step: 'opened', amount: result.amount } : { step: 'refused', reason: result.reason });
+      setPhase(
+        result.ok
+          ? { step: 'opened', amount: result.amount, txHash: result.txHash }
+          : { step: 'refused', reason: result.reason },
+      );
     } catch (error) {
       if (before.step === 'ready') setPhase({ ...before, error: friendlyError(error) });
     }

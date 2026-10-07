@@ -4,6 +4,7 @@ import { act, cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { backupString, newVault, userAddressBytes } from '@lixi/sdk';
 import { refundEnvelope } from '../src/flows/manage';
+import { txUrl } from '../src/lib/links';
 import { VAULT_KEY } from '../src/lib/storage';
 import { REFRESH_MS } from '../src/pages/Dashboard';
 import { ADDRESS, setup } from './app-harness';
@@ -29,6 +30,7 @@ describe('my envelopes', () => {
     await user.click(screen.getByRole('button', { name: 'Connect Test Wallet' }));
     await user.click(await screen.findByRole('button', { name: 'Bring 1 tNIGHT home' }));
     await screen.findByText('Came home: 1 tNIGHT.');
+    expect(screen.getByRole('link', { name: 'View transaction' }).getAttribute('href')).toBe(txUrl('tx3'));
   });
 
   it('says the envelopes belong to this browser, not to the connected wallet', async () => {

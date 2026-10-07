@@ -15,3 +15,9 @@ export const LINKS = {
 } as const;
 
 export type LinkKey = keyof typeof LINKS;
+
+/** The Preprod explorer. It is not in LINKS, because every entry there is a footer icon. */
+export const EXPLORER = 'https://preprod.midnightexplorer.com';
+
+/** A transaction on the explorer, which looks transactions up by hash (UX polish spec §3.9). */
+export const txUrl = (hash: string): string => `${EXPLORER}/transactions/0x${hash.replace(/^0x/, '')}`;

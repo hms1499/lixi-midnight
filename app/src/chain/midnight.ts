@@ -19,6 +19,7 @@ import {
 import type { AppConfig } from '../config';
 import { balanceOrExplain } from '../wallet/connector';
 import type { LixiChain, LixiReader, ProverChoice } from './port';
+import { lookupTxHash } from './tx-hash';
 
 type WebSocketCtor = Parameters<typeof indexerPublicDataProvider>[2];
 
@@ -83,7 +84,12 @@ export const walletChain = async (api: ConnectedAPI, config: AppConfig, prover: 
   return {
     readLedger: () => readLedger(publicDataProvider, address),
     create: (privateState, args) => createEnvelopeTx(providers, address, privateState, args),
-    claim: (args) => claimTx(providers, address, args),
-    refund: (privateState, id) => refundTx(providers, address, privateState, id),
+    claim: async (args) =>
+      lookupTxHash((txId) => publicDataProvider.watchForTxData(txId), await claimTx(providers, address, args)),
+    refund: async (privateState, id) =>
+      lookupTxHash(
+        (txId) => publicDataProvider.watchForTxData(txId),
+        await refundTx(providers, address, privateState, id),
+      ),
   };
 };

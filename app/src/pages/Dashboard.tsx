@@ -10,6 +10,7 @@ import { forgetEnvelope, refundEnvelope, restoreVault } from '../flows/manage';
 import { envelopeView, type EnvelopeView } from '../lib/status';
 import { localVaultStore } from '../lib/storage';
 import { formatRelative } from '../lib/time';
+import { txUrl } from '../lib/links';
 import { formatNight } from '../lib/units';
 import { useServices } from '../services';
 import { READ_FAILED, friendlyError } from '../wallet/errors';
@@ -75,6 +76,7 @@ const Row = ({
   const { state } = useWallet();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [txHash, setTxHash] = useState<string>();
   const { saved } = view;
   const labels = view.shares.map((s, n) => {
     const { state: light, word } = lightOf(view, s.opened);
@@ -88,7 +90,8 @@ const Row = ({
     setError(undefined);
     try {
       const result = await refundEnvelope(state.wallet.chain, vault, saved.index, services.now());
-      if (!result.ok) setError(NOT_HOME[result.reason]);
+      if (result.ok) setTxHash(result.txHash);
+      else setError(NOT_HOME[result.reason]);
       onChanged();
     } catch (e) {
       setError(friendlyError(e));
@@ -119,6 +122,11 @@ const Row = ({
         <div>
           <p className={view.state === 'empty' ? 'text-paper-dim' : ''}>{summary(view)}</p>
           <p className="text-sm text-paper-dim">{statusLine(view, now)}</p>
+          {view.state === 'refunded' && txHash && (
+            <a className="text-sm underline underline-offset-4" href={txUrl(txHash)} target="_blank" rel="noreferrer">
+              View transaction
+            </a>
+          )}
         </div>
         {view.state === 'refundable' &&
           state.status === 'connected' &&

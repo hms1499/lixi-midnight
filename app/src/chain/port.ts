@@ -7,7 +7,9 @@ export type LixiReader = { readLedger(): Promise<Ledger> };
 /** A wallet-backed handle on the deployed contract: each call proves, balances and submits a transaction. */
 export type LixiChain = LixiReader & {
   create(privateState: LixiPrivateState, args: CreateArgs): Promise<{ id: Uint8Array; txId: string }>;
+  /** Resolves to the transaction hash, or '' when it could not be looked up (UX polish spec §3.9). */
   claim(args: ClaimTxArgs): Promise<string>;
+  /** Resolves to the transaction hash, or '' when it could not be looked up. */
   refund(privateState: LixiPrivateState, id: Uint8Array): Promise<string>;
 };
 

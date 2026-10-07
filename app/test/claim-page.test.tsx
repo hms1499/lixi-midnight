@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { claimUrl } from '@lixi/sdk';
+import { txUrl } from '../src/lib/links';
 import { PROVER_KEY } from '../src/lib/storage';
 import { detectWallets } from '../src/wallet/connector';
 import { ORIGIN, fakeWallet, setup } from './app-harness';
@@ -22,6 +23,7 @@ describe('claim page', () => {
     await screen.findByText('It is in your wallet. The link’s secret never touched the chain.');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('1 tNIGHT');
     expect(screen.getByRole('img', { name: 'An opened lì xì' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View transaction' }).getAttribute('href')).toBe(txUrl('tx2'));
   });
 
   it('shows the wallet’s balances once connected, and reads them again after opening', async () => {
@@ -242,5 +244,20 @@ describe('claim page', () => {
     show(claimUrl('', link));
     await screen.findByText(/1 tNIGHT is sealed inside/);
     expect(screen.getByText('Advanced: where proofs are made').closest('details')!.open).toBe(true);
+  });
+  it('shows no transaction link when the hash could not be looked up', async () => {
+    const user = userEvent.setup();
+    const { show, create, chain } = setup();
+    const [link] = await create();
+    const realClaim = chain.claim;
+    chain.claim = async (args) => {
+      await realClaim(args);
+      return '';
+    };
+    show(claimUrl('', link));
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
+    await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
+    await screen.findByText('It is in your wallet. The link’s secret never touched the chain.');
+    expect(screen.queryByRole('link', { name: 'View transaction' })).toBeNull();
   });
 });

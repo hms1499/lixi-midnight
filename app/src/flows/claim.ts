@@ -18,7 +18,7 @@ export type ClaimPreview =
   | { readonly ok: true; readonly amount: bigint; readonly secondsLeft: number; readonly expiringSoon: boolean }
   | Refused;
 
-export type ClaimResult = { readonly ok: true; readonly amount: bigint; readonly txId: string } | Refused;
+export type ClaimResult = { readonly ok: true; readonly amount: bigint; readonly txHash: string } | Refused;
 
 /** Any address will do before a wallet is connected: only group envelopes look at it. */
 const NO_ADDRESS = new Uint8Array(32);
@@ -68,14 +68,14 @@ export const claimWithLink = async (
     const ready = prepare(await chain.readLedger(), link, recipient, now());
     if (!ready.ok) return ready;
     try {
-      const txId = await chain.claim({ ...ready.args, recipient });
-      return { ok: true, amount: ready.amount, txId };
+      const txHash = await chain.claim({ ...ready.args, recipient });
+      return { ok: true, amount: ready.amount, txHash };
     } catch (error) {
       const ledger = await chain.readLedger().catch(() => undefined);
       if (!ledger) throw error;
       // A group records each paid address. If ours is there now, our transaction landed although the call failed.
       if (link.kind === 'group' && ledger.addrClaims.member(pureCircuits.addrKey(ready.args.id, { bytes: recipient })))
-        return { ok: true, amount: ready.amount, txId: '' };
+        return { ok: true, amount: ready.amount, txHash: '' };
       const taken = ledger.nullifiers.member(pureCircuits.nullifierOf(ready.args.id, ready.args.share.secret));
       if (taken && link.kind === 'group' && attempt < tries) continue;
       const again = prepare(ledger, link, recipient, now());
