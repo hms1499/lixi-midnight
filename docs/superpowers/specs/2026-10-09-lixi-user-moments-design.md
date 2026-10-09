@@ -62,7 +62,7 @@ The largest gap stays out of scope: recipients on phones (desktop only today; Wa
 - Title: "Lixi: private red envelopes on Midnight". Description: "Red envelopes (lì xì) on Midnight. Open yours with a zero-knowledge proof: only its link knows whose."
 - `og:image` must be an absolute URL. It is built from `VITE_SITE_URL` (default `https://lixi-3nv.pages.dev`) by a small Vite HTML transform, next to the existing CSP one.
 
-**The image.** `app/public/og.png`, 1200 × 630, under 300 KB: the night background, one large lit red envelope, and "Every light is one lì xì." in Fraunces. It is rendered once from `app/og/og.html` by a Playwright script (`npm run og -w @lixi/app`), and the PNG is committed. The page itself never loads it.
+**The image.** `app/public/og.png`, 1200 × 630, under 300 KB: the night background, one large lit red envelope, and "Every light is one lì xì." in Fraunces. It is rendered once from `app/og/og.html` by headless Chrome (`npm run og -w @lixi/app`, which runs `app/scripts/og-image.ts`; amended while planning, because the repo has no Playwright package), and the PNG is committed. The page itself never loads it.
 
 **Privacy.** Every URL gets the same tags. A crawler never receives the fragment, so a preview says nothing about any envelope or lì xì.
 
@@ -136,14 +136,14 @@ Errors are unchanged: a failure shows `friendlyError` as today, and the progress
 
 **Privacy receipt.** Under the greeting, a two-column block (stacked on phones):
 
-| The chain saw | It never saw |
-|---|---|
-| X tNIGHT paid to your wallet | which link you opened |
-| that this envelope paid out once more | the secret inside your link |
-| | what the other lì xì hold |
-| | how many lì xì this envelope holds *(personal links only)* |
+| The chain saw | It never saw: personal link | It never saw: group link |
+|---|---|---|
+| X tNIGHT paid to your wallet | which link you opened | which lì xì in the envelope you got |
+| that this envelope paid out once more | the secret inside your link | the secret inside your link |
+| | what the other lì xì hold | |
+| | how many lì xì this envelope holds | |
 
-- The last "never saw" row is left out for group links: a group splits equally, so its first opening reveals the count (README, Limitations).
+- A group splits equally, so its first opening reveals both the count and every other amount (README, Limitations). Its column therefore leaves those two rows out. (Amended 2026-10-09 while planning: the first draft kept "what the other lì xì hold" for groups, which is false.)
 - Wording must stay consistent with the README's privacy model; the plan checks both.
 - The receipt fades in after the count-up ends (300 ms); with reduced motion it is shown at once.
 
