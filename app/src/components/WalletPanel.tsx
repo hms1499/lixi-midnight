@@ -2,7 +2,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router';
 import type { ProverChoice } from '../chain/port';
 import { LINKS } from '../lib/links';
-import { loadProver, saveProver } from '../lib/storage';
+import { loadProver, saveProver } from '../lib/prefs';
 import { useServices } from '../services';
 import { PROOF_SERVER_COMMAND } from '../wallet/errors';
 import { useDetectedWallets, useWallet, type ConnectedWallet } from '../wallet/WalletContext';

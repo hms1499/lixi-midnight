@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newVault, serializeVault } from '@lixi/sdk';
-import { VAULT_KEY, loadProver, localVaultStore, saveProver } from '../src/lib/storage';
+import { loadProver, saveProver } from '../src/lib/prefs';
+import { VAULT_KEY, localVaultStore } from '../src/lib/storage';
 import { MemoryStorage } from './helpers';
 
 describe('localVaultStore', () => {

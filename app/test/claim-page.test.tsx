@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { claimUrl } from '@lixi/sdk';
 import { txUrl } from '../src/lib/links';
-import { PROVER_KEY } from '../src/lib/storage';
+import { PROVER_KEY } from '../src/lib/prefs';
 import { detectWallets } from '../src/wallet/connector';
 import { ORIGIN, fakeWallet, setup } from './app-harness';
 import { rnd } from './helpers';
@@ -91,14 +91,14 @@ describe('claim page', () => {
     const [link] = await create();
     show('/c');
     await user.type(
-      screen.getByLabelText('Paste the link you were sent'),
+      await screen.findByLabelText('Paste the link you were sent'),
       `Here: ${claimUrl('https://lixi.test', link)}).`,
     );
     await user.click(screen.getByRole('button', { name: 'Open link' }));
     await screen.findByText(/1 tNIGHT is sealed inside/);
     cleanup();
     show('/c');
-    await user.type(screen.getByLabelText('Paste the link you were sent'), 'hello');
+    await user.type(await screen.findByLabelText('Paste the link you were sent'), 'hello');
     await user.click(screen.getByRole('button', { name: 'Open link' }));
     await screen.findByText(/not a Lixi link/);
   });

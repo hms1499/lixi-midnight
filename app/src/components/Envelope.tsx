@@ -13,3 +13,11 @@ export const Envelope = ({ state, label, children }: { state: EnvelopeState; lab
     <span className="seal" aria-hidden="true" />
   </div>
 );
+
+/** The claim page while it looks at the envelope; also what /c shows while its code loads (user moments spec §3.1). */
+export const EnvelopeChecking = () => (
+  <>
+    <Envelope state="sealed" label="A sealed lì xì" />
+    <p className="pt-4 text-paper-soft">Looking at the envelope…</p>
+  </>
+);

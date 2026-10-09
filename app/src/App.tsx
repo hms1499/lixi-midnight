@@ -1,20 +1,90 @@
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Route, Routes } from 'react-router';
-import { Layout } from './components/Layout';
-import { Claim } from './pages/Claim';
-import { Create } from './pages/Create';
-import { Dashboard } from './pages/Dashboard';
+import { EnvelopeChecking } from './components/Envelope';
+import { Layout, Page } from './components/Layout';
+import { LoadBoundary } from './components/LoadBoundary';
+import { Working } from './components/ui';
 import { Home } from './pages/Home';
 import { NotFound } from './pages/NotFound';
-import { Share } from './pages/Share';
+import { useServices } from './services';
+
+// These pages need the SDK and its ledger WASM (~4.8 MB), so they load on demand and Home paints at once
+// (user moments spec §3.1). `npm run build` fails if the shell starts importing WASM again.
+const pages = {
+  create: () => import('./pages/Create'),
+  share: () => import('./pages/Share'),
+  claim: () => import('./pages/Claim'),
+  dashboard: () => import('./pages/Dashboard'),
+};
+const Create = lazy(() => pages.create().then((m) => ({ default: m.Create })));
+const Share = lazy(() => pages.share().then((m) => ({ default: m.Share })));
+const Claim = lazy(() => pages.claim().then((m) => ({ default: m.Claim })));
+const Dashboard = lazy(() => pages.dashboard().then((m) => ({ default: m.Dashboard })));
+
+/** Starts loading every lazy page, so a later click does not wait. */
+export const preloadPages = (): void => {
+  for (const load of Object.values(pages)) void load();
+};
+
+const Loading = () => (
+  <Page>
+    <Working>Lighting the lanterns…</Working>
+  </Page>
+);
+
+const ClaimLoading = () => (
+  <Page>
+    <div className="mx-auto max-w-xl space-y-5 text-center">
+      <EnvelopeChecking />
+    </div>
+  </Page>
+);
+
+const Lazy = ({ children, fallback = <Loading /> }: { children: ReactNode; fallback?: ReactNode }) => {
+  const { reload } = useServices();
+  return (
+    <LoadBoundary onReload={reload}>
+      <Suspense fallback={fallback}>{children}</Suspense>
+    </LoadBoundary>
+  );
+};
 
 export const App = () => (
   <Routes>
     <Route element={<Layout />}>
       <Route index element={<Home />} />
-      <Route path="create" element={<Create />} />
-      <Route path="share/:id" element={<Share />} />
-      <Route path="c" element={<Claim />} />
-      <Route path="dashboard" element={<Dashboard />} />
+      <Route
+        path="create"
+        element={
+          <Lazy>
+            <Create />
+          </Lazy>
+        }
+      />
+      <Route
+        path="share/:id"
+        element={
+          <Lazy>
+            <Share />
+          </Lazy>
+        }
+      />
+      <Route
+        path="c"
+        element={
+          <Lazy fallback={<ClaimLoading />}>
+            <Claim />
+          </Lazy>
+        }
+      />
+      <Route
+        path="dashboard"
+        element={
+          <Lazy>
+            <Dashboard />
+          </Lazy>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Route>
   </Routes>

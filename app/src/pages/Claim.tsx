@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { encodeLink, parseClaimInput, type ClaimLink } from '@lixi/sdk';
-import { Envelope, type EnvelopeState } from '../components/Envelope';
+import { Envelope, EnvelopeChecking, type EnvelopeState } from '../components/Envelope';
 import { Page } from '../components/Layout';
 import { Light } from '../components/Light';
 import { FeeHint } from '../components/FeeHint';
@@ -135,8 +135,7 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
   if (phase.step === 'checking')
     return (
       <Centre>
-        <Envelope state="sealed" label="A sealed lì xì" />
-        <p className="pt-4 text-paper-soft">Looking at the envelope…</p>
+        <EnvelopeChecking />
       </Centre>
     );
   if (phase.step === 'failed')

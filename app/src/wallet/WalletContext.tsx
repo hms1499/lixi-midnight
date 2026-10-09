@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ConnectedAPI, InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
-import { userAddressBytes } from '@lixi/sdk';
 import type { LixiChain, ProverChoice } from '../chain/port';
 import { useServices } from '../services';
 import { readBalances, type Balances } from './balances';
@@ -61,6 +60,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       try {
         const connected = await connectWallet(initial, services.config.network);
         const { unshieldedAddress } = await connected.getUnshieldedAddress();
+        // The SDK pulls in the ledger WASM; load it only once a wallet connects, so the shell paints first (user moments spec §3.1).
+        const { userAddressBytes } = await import('@lixi/sdk');
         let recipient: Uint8Array;
         try {
           recipient = userAddressBytes(unshieldedAddress, services.config.network);
