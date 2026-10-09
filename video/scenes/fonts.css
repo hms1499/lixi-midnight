@@ -1,0 +1,7 @@
+@import url('../../node_modules/@fontsource-variable/fraunces/opsz.css');
+
+@font-face {
+  font-family: 'Playwrite VN';
+  font-weight: 200;
+  src: url('../../app/src/assets/fonts/playwrite-vn-200.woff2') format('woff2');
+}
