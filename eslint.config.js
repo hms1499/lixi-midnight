@@ -3,7 +3,17 @@ import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/', '**/dist/', 'contract/src/managed/', '.superpowers/', 'docs/'] },
+  {
+    ignores: [
+      '**/node_modules/',
+      '**/dist/',
+      'contract/src/managed/',
+      '.superpowers/',
+      'docs/',
+      'video/out/',
+      'video/.profile-1am*/',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   prettier,
