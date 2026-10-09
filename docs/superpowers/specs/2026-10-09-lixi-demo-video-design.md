@@ -1,6 +1,6 @@
 # Lixi demo video: a code-built walkthrough of the whole project
 
-**Design spec · 2026-10-09 · Status: draft, awaiting review**
+**Design spec · 2026-10-09 · Status: implemented, merged 2026-10-09**
 
 **Parent specs:** `docs/superpowers/specs/2026-10-07-lixi-wave2-submission-design.md` (the submission needs a demo video) and `docs/superpowers/specs/2026-10-02-lixi-frontend-design.md` (colours, type, the meaning of a light's state). This spec adds a video pipeline and a dev-only demo entry to the app. The contract, the SDK, the CLI and the shipped site do not change.
 
