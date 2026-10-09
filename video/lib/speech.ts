@@ -2,7 +2,7 @@ import { run } from './run.ts';
 
 /** How the built-in voices should say words they mangle. Captions keep the written form. Order matters. */
 const PRONOUNCE: ReadonlyArray<readonly [RegExp, string]> = [
-  [/lixi-3nv dot pages dot dev/g, 'lixi dash 3 N V, dot pages dot dev'],
+  [/lixi-3nv\.pages\.dev/g, 'lixi dash 3 N V, dot pages dot dev'],
   [/lì xì/g, 'lee see'],
   [/Lixi/g, 'Lee see'],
   [/Tết/g, 'Tet'],

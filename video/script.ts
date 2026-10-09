@@ -89,7 +89,7 @@ export const SCENES: Scene[] = [
     id: 's10',
     title: 'Outro',
     kind: 'card',
-    narration: 'Lixi. Private red envelopes on Midnight. Try it at lixi-3nv dot pages dot dev.',
+    narration: 'Lixi. Private red envelopes on Midnight. Try it at lixi-3nv.pages.dev.',
   },
 ];
 
