@@ -26,4 +26,22 @@ describe('walletChain', () => {
     expect(await chain.refund({} as never, new Uint8Array(32))).toBe('refund-hash');
     expect(watchForTxData).not.toHaveBeenCalled();
   });
+
+  it('reports a call’s stages to that call’s listener only', async () => {
+    const sdk = await import('@lixi/sdk');
+    const waits = async (providers: unknown) => {
+      await (
+        providers as { publicDataProvider: { watchForTxData(id: string): Promise<unknown> } }
+      ).publicDataProvider.watchForTxData('tx');
+      return 'hash';
+    };
+    vi.mocked(sdk.claimTx).mockImplementationOnce(waits as never);
+    vi.mocked(sdk.refundTx).mockImplementationOnce(waits as never);
+    const chain = await walletChain(api, config, 'local');
+    const seen: string[] = [];
+    expect(await chain.claim({} as never, (s) => seen.push(s))).toBe('hash');
+    expect(seen).toEqual(['waiting']);
+    await chain.refund({} as never, new Uint8Array(32)); // no listener: nothing more is reported
+    expect(seen).toEqual(['waiting']);
+  });
 });

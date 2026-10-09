@@ -11,7 +11,7 @@ import {
   type SplitMode,
 } from '@lixi/sdk';
 import type { Ledger } from '@lixi/contract';
-import type { LixiChain } from '../chain/port';
+import type { LixiChain, OnStage } from '../chain/port';
 import { DURATION_MARGIN_SECONDS } from '../lib/time';
 import type { VaultStore } from '../lib/storage';
 
@@ -56,6 +56,7 @@ export const createEnvelope = async (
   refundAddress: Uint8Array,
   now: number,
   previewedIndex?: number,
+  onStage?: OnStage,
 ): Promise<{ id: Uint8Array; txId: string }> => {
   const ledger = await chain.readLedger();
   const min = Number(ledger.minDuration) + DURATION_MARGIN_SECONDS;
@@ -74,10 +75,14 @@ export const createEnvelope = async (
   const expiry = BigInt(now + form.durationSeconds);
   const next = addEnvelope(vault, { ...spec, expiry, labels: [] });
   store.save(next);
-  return chain.create(privateStateOf(next), {
-    nonce: d.nonce,
-    expiry,
-    refundAddress,
-    onePerAddress: form.kind === 'group',
-  });
+  return chain.create(
+    privateStateOf(next),
+    {
+      nonce: d.nonce,
+      expiry,
+      refundAddress,
+      onePerAddress: form.kind === 'group',
+    },
+    onStage,
+  );
 };

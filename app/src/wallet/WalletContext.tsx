@@ -15,6 +15,8 @@ export type ConnectedWallet = {
   readonly chain: LixiChain;
   /** The wallet's last known tNIGHT and DUST; absent until read, or when the wallet cannot say. */
   readonly balances?: Balances;
+  /** Where this connection makes proofs, chosen when connecting (shown in transaction progress). */
+  readonly prover: ProverChoice;
 };
 
 export type WalletState =
@@ -34,9 +36,9 @@ const WalletContext = createContext<WalletContextValue | null>(null);
 /** Reads the balances again after every transaction, whether it landed or failed. */
 const rereadingAfter = (chain: LixiChain, reread: () => void): LixiChain => ({
   readLedger: () => chain.readLedger(),
-  create: (privateState, args) => chain.create(privateState, args).finally(reread),
-  claim: (args) => chain.claim(args).finally(reread),
-  refund: (privateState, id) => chain.refund(privateState, id).finally(reread),
+  create: (privateState, args, onStage) => chain.create(privateState, args, onStage).finally(reread),
+  claim: (args, onStage) => chain.claim(args, onStage).finally(reread),
+  refund: (privateState, id, onStage) => chain.refund(privateState, id, onStage).finally(reread),
 });
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
@@ -71,7 +73,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const opened = await services.openChain(connected, prover);
         const chain = rereadingAfter(opened, () => void refreshBalances());
         api.current = connected;
-        setState({ status: 'connected', wallet: { name: initial.name, address: unshieldedAddress, recipient, chain } });
+        setState({
+          status: 'connected',
+          wallet: { name: initial.name, address: unshieldedAddress, recipient, chain, prover },
+        });
         void refreshBalances(); // a hint: connecting does not wait for it
       } catch (error) {
         setState({ status: 'failed', message: friendlyError(error) });

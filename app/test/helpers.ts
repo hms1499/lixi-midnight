@@ -1,9 +1,14 @@
 import { LixiSimulator, T0 } from '@lixi/contract/testing';
-import type { LixiChain } from '../src/chain/port';
+import { TX_STAGES, type LixiChain, type OnStage } from '../src/chain/port';
 
 export { T0 };
 export const HOUR = 3600;
 export const rnd = (): Uint8Array => crypto.getRandomValues(new Uint8Array(32));
+
+/** Reports every stage at once, as if the transaction ran through all of them. */
+const report = (onStage?: OnStage) => {
+  for (const stage of TX_STAGES) onStage?.(stage);
+};
 
 /** A LixiChain backed by the real compiled contract running in-process. */
 export const simChain = (sim: LixiSimulator): LixiChain & { calls: string[] } => {
@@ -11,17 +16,20 @@ export const simChain = (sim: LixiSimulator): LixiChain & { calls: string[] } =>
   return {
     calls,
     readLedger: async () => sim.ledger(),
-    create: async (privateState, a) => {
+    create: async (privateState, a, onStage) => {
+      report(onStage);
       calls.push('create');
       sim.privateState = privateState;
       return { id: sim.create(a.nonce, a.expiry, a.refundAddress, a.onePerAddress), txId: `tx${calls.length}` };
     },
-    claim: async (a) => {
+    claim: async (a, onStage) => {
+      report(onStage);
       calls.push('claim');
       sim.claim(a.id, a.share, a.path, a.recipient);
       return `tx${calls.length}`;
     },
-    refund: async (privateState, id) => {
+    refund: async (privateState, id, onStage) => {
+      report(onStage);
       calls.push('refund');
       sim.privateState = privateState;
       sim.refund(id);

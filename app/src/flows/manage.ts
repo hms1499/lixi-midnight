@@ -8,7 +8,7 @@ import {
   type RefundCheck,
   type SenderVault,
 } from '@lixi/sdk';
-import type { LixiChain, LixiReader } from '../chain/port';
+import type { LixiChain, LixiReader, OnStage } from '../chain/port';
 import type { VaultStore } from '../lib/storage';
 
 export type RefundResult = { readonly ok: true; readonly txHash: string } | Extract<RefundCheck, { ok: false }>;
@@ -19,13 +19,14 @@ export const refundEnvelope = async (
   vault: SenderVault,
   index: number,
   now: number,
+  onStage?: OnStage,
 ): Promise<RefundResult> => {
   const saved = vault.envelopes.find((e) => e.index === index);
   if (!saved) throw new Error('unknown envelope');
   const { id } = deriveEnvelope(vault.seed, saved);
   const check = checkRefund(await chain.readLedger(), id, now);
   if (!check.ok) return check;
-  return { ok: true, txHash: await chain.refund(privateStateOf(vault), id) };
+  return { ok: true, txHash: await chain.refund(privateStateOf(vault), id, onStage) };
 };
 
 /** Drops a vault entry whose envelope never reached the chain, and keeps its index from being sealed again. */

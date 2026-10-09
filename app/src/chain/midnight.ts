@@ -18,7 +18,8 @@ import {
 } from '@lixi/sdk';
 import type { AppConfig } from '../config';
 import { balanceOrExplain } from '../wallet/connector';
-import type { LixiChain, LixiReader, ProverChoice } from './port';
+import type { LixiChain, LixiReader, OnStage, ProverChoice } from './port';
+import { withStages } from './stages';
 
 type WebSocketCtor = Parameters<typeof indexerPublicDataProvider>[2];
 
@@ -80,10 +81,22 @@ export const walletChain = async (api: ConnectedAPI, config: AppConfig, prover: 
     },
   };
   const address = config.contractAddress;
+  let listener: OnStage | undefined;
+  const staged = withStages(providers, () => listener);
+  /** Runs one transaction with `onStage` as its listener. Pages run one transaction at a time. */
+  const reporting = async <T>(onStage: OnStage | undefined, run: () => Promise<T>): Promise<T> => {
+    listener = onStage;
+    try {
+      return await run();
+    } finally {
+      listener = undefined;
+    }
+  };
   return {
     readLedger: () => readLedger(publicDataProvider, address),
-    create: (privateState, args) => createEnvelopeTx(providers, address, privateState, args),
-    claim: (args) => claimTx(providers, address, args),
-    refund: (privateState, id) => refundTx(providers, address, privateState, id),
+    create: (privateState, args, onStage) =>
+      reporting(onStage, () => createEnvelopeTx(staged, address, privateState, args)),
+    claim: (args, onStage) => reporting(onStage, () => claimTx(staged, address, args)),
+    refund: (privateState, id, onStage) => reporting(onStage, () => refundTx(staged, address, privateState, id)),
   };
 };

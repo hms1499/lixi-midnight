@@ -7,7 +7,7 @@ import {
   type ClaimLink,
   type ClaimRejection,
 } from '@lixi/sdk';
-import type { LixiChain } from '../chain/port';
+import type { LixiChain, OnStage } from '../chain/port';
 
 export type ClaimRefusal = ClaimRejection | 'all shares claimed';
 
@@ -62,13 +62,14 @@ export const claimWithLink = async (
   link: ClaimLink,
   recipient: Uint8Array,
   now: () => number,
+  onStage?: OnStage,
   tries = 3,
 ): Promise<ClaimResult> => {
   for (let attempt = 1; ; attempt++) {
     const ready = prepare(await chain.readLedger(), link, recipient, now());
     if (!ready.ok) return ready;
     try {
-      const txHash = await chain.claim({ ...ready.args, recipient });
+      const txHash = await chain.claim({ ...ready.args, recipient }, onStage);
       return { ok: true, amount: ready.amount, txHash };
     } catch (error) {
       const ledger = await chain.readLedger().catch(() => undefined);

@@ -200,6 +200,41 @@ describe('claim', () => {
     expect(await refundEnvelope(chain, store.load()!, 0, sim.now)).toMatchObject({ ok: true });
     expect(await claimWithLink(chain, link, rnd(), now)).toEqual({ ok: false, reason: 'refunded' });
   });
+
+  it('reports every stage of a claim, a create and a refund', async () => {
+    const { sim, chain, store, linksOf, now } = setup();
+    const seen: string[] = [];
+    await createEnvelope(chain, store, form(), rnd(), sim.now, undefined, (s) => seen.push(s));
+    expect(seen).toEqual(['proving', 'confirm', 'sending', 'waiting']);
+    seen.length = 0;
+    await claimWithLink(chain, linksOf(0)[0], rnd(), now, (s) => seen.push(s));
+    expect(seen).toEqual(['proving', 'confirm', 'sending', 'waiting']);
+    seen.length = 0;
+    sim.now = T0 + 2 * HOUR;
+    await refundEnvelope(chain, store.load()!, 0, sim.now, (s) => seen.push(s));
+    expect(seen).toEqual(['proving', 'confirm', 'sending', 'waiting']);
+  });
+
+  it('starts again from proving when a group claim retries after losing a race', async () => {
+    const { chain, create, linksOf, now } = setup();
+    await create({ kind: 'group', count: 2, total: 2_000_000n });
+    const [link] = linksOf(0);
+    const realClaim = chain.claim;
+    let first = true;
+    chain.claim = async (args, onStage) => {
+      if (first) {
+        first = false;
+        onStage?.('proving');
+        onStage?.('confirm');
+        await realClaim({ ...args, recipient: rnd() }); // someone else takes this share first
+        throw new Error('Rejected');
+      }
+      return realClaim(args, onStage);
+    };
+    const seen: string[] = [];
+    expect(await claimWithLink(chain, link, rnd(), now, (s) => seen.push(s))).toMatchObject({ ok: true });
+    expect(seen).toEqual(['proving', 'confirm', 'proving', 'confirm', 'sending', 'waiting']);
+  });
 });
 
 describe('dashboard state and refund', () => {
