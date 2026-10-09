@@ -9,7 +9,7 @@
     "predev": "npm run zk",
     "dev": "vite",
     "prebuild": "npm run zk",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-entry.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

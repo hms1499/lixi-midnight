@@ -20,8 +20,9 @@ export default defineConfig(({ mode }) => {
   const { network } = appConfig(loadEnv(mode, process.cwd(), 'VITE_'));
   return {
     plugins: [react(), tailwindcss(), wasm(), csp(cspFor(network))],
-    // The Midnight libraries make one ~1 MB chunk (plus ~11 MB of WASM); nothing to gain from splitting it.
-    build: { target: 'esnext', chunkSizeWarningLimit: 1500 },
+    // The SDK pages load lazily, so the shell paints without the ~11 MB of WASM (user moments spec §3.1).
+    // The manifest lets scripts/check-entry.ts prove it after every build.
+    build: { target: 'esnext', chunkSizeWarningLimit: 1500, manifest: true },
     optimizeDeps: { exclude: ['@midnight-ntwrk/onchain-runtime-v3'] },
   };
 });
