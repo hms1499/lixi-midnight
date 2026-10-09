@@ -1,0 +1,16 @@
+{
+  "name": "lixi-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "check-demo": "node check-demo.ts",
+    "voice-sample": "node voice-sample.ts",
+    "setup-1am": "node setup-1am.ts",
+    "record-live": "node record-live.ts",
+    "build": "node build.ts"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
