@@ -1,6 +1,6 @@
 # Lixi user moments: a fast first look, real progress, the opening, the sender's news
 
-**Design spec · 2026-10-09 · Status: approved in chat, pending written-spec review**
+**Design spec · 2026-10-09 · Status: implemented, merged 2026-10-09 at fb66572, deployed**
 
 **Parent specs:** `docs/superpowers/specs/2026-10-02-lixi-frontend-design.md` (claim moments §6.4, dashboard §6.5, motion §7) and `docs/superpowers/specs/2026-10-07-lixi-ux-polish-design.md`. This spec changes the app only. The contract, the SDK, the colours and the meaning of a light's state stay as they are.
 
@@ -49,7 +49,7 @@ The largest gap stays out of scope: recipients on phones (desktop only today; Wa
 
 **Preload.** Once the shell has rendered, it requests the chain module and the four page chunks when the browser is idle (`requestIdleCallback`, or after 1 s where it is missing), so a click on **Fill an envelope** rarely waits.
 
-**Guard.** The Vite build writes its manifest (`build.manifest: true`). A new script, `app/scripts/check-entry.mjs`, runs after `vite build` as part of `npm run build -w @lixi/app`, so CI enforces it. It fails the build when the entry chunk's static imports, followed transitively, reach a `.wasm` file. The vite config comment that says splitting gains nothing is replaced.
+**Guard.** The Vite build writes its manifest (`build.manifest: true`). A new script, `app/scripts/check-entry.ts`, runs after `vite build` as part of `npm run build -w @lixi/app`, so CI enforces it. It fails the build when the entry chunk's static imports, followed transitively, reach a `.wasm` file. The vite config comment that says splitting gains nothing is replaced.
 
 **Unchanged.** The pre-JS fallback in `index.html` ("Lighting the lanterns…") stays. The CSP does not change: every chunk is same-origin.
 
