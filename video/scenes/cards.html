@@ -117,6 +117,58 @@
       </div>
     </section>
 
+    <section id="s8" hidden>
+      <div class="layer" data-at="0" data-out="0.29">
+        <h2>Four packages, one repo</h2>
+        <div class="cols" style="grid-template-columns: repeat(4, 1fr); gap: 18px">
+          <div class="box chain" data-at="0.03"><b>contract/</b>lixi.compact, simulator tests</div>
+          <div class="box" data-at="0.08"><b>sdk/</b>seeds, splits, links, vault, midnight-js</div>
+          <div class="box" data-at="0.13"><b>cli/</b>deploy, smoke, devnet end-to-end</div>
+          <div class="box private" data-at="0.18"><b>app/</b>React: seal, share, open, bring home</div>
+        </div>
+      </div>
+      <div class="layer" data-at="0.3" data-out="0.63">
+        <p class="dim" style="margin: 0; font-size: 16px">
+          $ npm test · recorded output, replayed <span id="speed"></span>× faster
+        </p>
+        <pre class="terminal" id="term"></pre>
+        <h2 class="good" id="total" data-at="0.56"></h2>
+      </div>
+      <div class="layer" data-at="0.64">
+        <div class="cols" style="grid-template-columns: 1.2fr 1fr; align-items: center">
+          <img class="shot" id="ci" alt="" />
+          <div>
+            <span class="chip" data-at="0.68">CI on every push</span>
+            <span class="chip" data-at="0.74">Devnet end-to-end</span>
+            <span class="chip" data-at="0.82">Strict CSP</span>
+            <span class="chip" data-at="0.9">No admin key</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <script>
+      window.hooks = window.hooks || {};
+      (() => {
+        let lines = [];
+        let times = [];
+        window.hooks.s8 = {
+          setup: (data) => {
+            lines = data.lines;
+            times = data.times;
+            document.getElementById('speed').textContent = String(data.speed);
+            document.getElementById('total').textContent = `${data.count} tests passed`;
+            document.getElementById('ci').src = data.ci;
+          },
+          // Replays the recorded lines between 30 % and 55 % of the scene, keeping the last 22 on screen.
+          seek: (t, d) => {
+            const k = Math.min(Math.max((t - 0.3 * d) / (0.25 * d), 0), 1);
+            const shown = times.filter((x) => x <= k).length;
+            document.getElementById('term').textContent = lines.slice(Math.max(0, shown - 22), shown).join('\n');
+          },
+        };
+      })();
+    </script>
+
     <script src="anim.js"></script>
   </body>
 </html>

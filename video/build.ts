@@ -1,7 +1,8 @@
 // Builds the demo video (spec §5). Usage: node build.ts [--scene s3]… [--all] [--fresh-tests] [--fallback-tx <hash>]
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { launch } from './lib/browser.ts';
+import { launch, newContext } from './lib/browser.ts';
 import { cueTimes, toSrt, type Cue } from './lib/captions.ts';
 import { renderCard, writeTokens } from './lib/cards.ts';
 import { encodeScene, joinScenes, type Overlay } from './lib/ffmpeg.ts';
@@ -9,6 +10,7 @@ import { renderOverlays } from './lib/overlays.ts';
 import { claimCircuit } from './lib/code.ts';
 import { OUT, ROOT } from './lib/paths.ts';
 import { audioSeconds, synthesize } from './lib/speech.ts';
+import { recordTestRun, terminalLines, type TestLine } from './lib/tests.ts';
 import { LEAD, sceneSeconds } from './lib/timing.ts';
 import { SCENES, VOICE, narrationFor, type Scene } from './script.ts';
 
@@ -29,14 +31,45 @@ const wanted = (s: Scene) =>
   values.all || named.includes(s.id) || (named.length === 0 && !existsSync(`${OUT}${s.id}.mp4`));
 
 writeTokens();
-const testCount = 0; // Task 8 replaces this with the real count
+type TestRun = { lines: TestLine[]; count: number; seconds: number };
+const testRunFile = `${OUT}test-run.json`;
+if (values['fresh-tests'] || !existsSync(testRunFile)) {
+  console.log('running npm test for scene 8 (takes a few minutes)…');
+  writeFileSync(testRunFile, JSON.stringify(await recordTestRun()));
+}
+const testRun = JSON.parse(readFileSync(testRunFile, 'utf8')) as TestRun;
+const testCount = testRun.count;
 const live = false; // Task 10 replaces this
 
-const cardData = (id: string): unknown =>
-  id === 's7' ? { code: claimCircuit(readFileSync(`${ROOT}contract/src/lixi.compact`, 'utf8')) } : {};
+const ciPng = `${OUT}s8/ci.png`;
+const cardData = (id: string, seconds: number): unknown => {
+  if (id === 's7') return { code: claimCircuit(readFileSync(`${ROOT}contract/src/lixi.compact`, 'utf8')) };
+  if (id === 's8') {
+    const lines = testRun.lines.filter((l) => l.text.trim() !== '' && !l.text.startsWith('Sourcemap for '));
+    const replay = 0.25 * seconds;
+    return {
+      lines: terminalLines(
+        lines.map((l) => l.text),
+        ROOT,
+      ),
+      times: lines.map((l) => l.at / testRun.seconds),
+      count: testRun.count,
+      speed: Math.max(1, Math.round(testRun.seconds / replay)),
+      ci: pathToFileURL(ciPng).href,
+    };
+  }
+  return {};
+};
 
 const browser = await launch({ fileAccess: true });
 try {
+  if (!existsSync(ciPng)) {
+    mkdirSync(`${OUT}s8`, { recursive: true });
+    const page = await (await newContext(browser)).newPage();
+    await page.goto('https://github.com/hms1499/lixi-midnight/actions/workflows/ci.yml', { waitUntil: 'networkidle' });
+    await page.screenshot({ path: ciPng });
+    await page.close();
+  }
   for (const scene of SCENES.filter(wanted)) {
     const dir = `${OUT}${scene.id}`;
     mkdirSync(dir, { recursive: true });
@@ -49,7 +82,7 @@ try {
     let seconds: number;
     if (scene.kind === 'card') {
       seconds = sceneSeconds(speech);
-      await renderCard(browser, { scene: scene.id, seconds, data: cardData(scene.id), dir: `${dir}/frames` });
+      await renderCard(browser, { scene: scene.id, seconds, data: cardData(scene.id, seconds), dir: `${dir}/frames` });
       visual = { video: ['-framerate', '30', '-i', `${dir}/frames/%05d.jpg`], footage: seconds, labels: [] };
     } else {
       throw new Error(`${scene.id}: ${scene.kind} scenes are built in a later task`);
