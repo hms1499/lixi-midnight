@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { Ledger } from '@lixi/contract';
 import { useParams } from 'react-router';
 import { toHex } from '@lixi/contract';
 import { claimUrl, deriveEnvelope, linksFor, type SavedEnvelope } from '@lixi/sdk';
 import { CopyButton } from '../components/CopyButton';
 import { Page } from '../components/Layout';
 import { Light } from '../components/Light';
+import { Toasts, useOpenedNews } from '../components/Toasts';
 import { Button, ButtonLink, Greeting, Notice, Working } from '../components/ui';
 import { GREETING_MAX, loadGreeting, saveGreeting, shareMessage } from '../lib/greeting';
+import { envelopeView } from '../lib/status';
 import { localVaultStore } from '../lib/storage';
 import { formatNight } from '../lib/units';
 import { useServices } from '../services';
@@ -15,6 +18,8 @@ import { READ_FAILED, friendlyError } from '../wallet/errors';
 /** While the envelope is on its way, how often the page looks again, and when it says it is taking long (§3.7). */
 export const SHARE_POLL_MS = 5_000;
 export const SHARE_SLOW_MS = 120_000;
+/** Once on chain, how often the page reads again, so opened lì xì show as opened (as My envelopes does). */
+export const SHARE_REFRESH_MS = 20_000;
 
 /** Links for one envelope, shown only once the envelope is on chain (spec §6.3). */
 export const Share = () => {
@@ -23,6 +28,7 @@ export const Share = () => {
   const [onChain, setOnChain] = useState<boolean | string>();
   const [attempt, setAttempt] = useState(0);
   const [slow, setSlow] = useState(false);
+  const [ledger, setLedger] = useState<Ledger>();
   const [greeting, setGreeting] = useState(() => loadGreeting(services.storage));
   const changeGreeting = (text: string) => {
     const next = text.slice(0, GREETING_MAX);
@@ -31,15 +37,16 @@ export const Share = () => {
   };
 
   // Derived once per envelope: a fresh id array on every render would make the effects below read the chain again.
-  const { found, saved, unreadable } = useMemo((): {
+  const { found, saved, seed, unreadable } = useMemo((): {
     found?: ReturnType<typeof deriveEnvelope>;
     saved?: SavedEnvelope;
+    seed?: Uint8Array;
     unreadable?: string;
   } => {
     try {
       const vault = localVaultStore(services.storage).load();
       const saved = vault?.envelopes.find((e) => toHex(deriveEnvelope(vault.seed, e).id) === id);
-      return { found: saved && vault ? deriveEnvelope(vault.seed, saved) : undefined, saved };
+      return { found: saved && vault ? deriveEnvelope(vault.seed, saved) : undefined, saved, seed: vault?.seed };
     } catch (error) {
       return { unreadable: friendlyError(error) };
     }
@@ -52,7 +59,11 @@ export const Share = () => {
     services.reader
       .readLedger()
       // Once found, it stays found: a slower read cannot take the links away again.
-      .then((ledger) => live && setOnChain((was) => was === true || ledger.envelopes.member(envelopeId)))
+      .then((ledger) => {
+        if (!live) return;
+        setLedger(ledger);
+        setOnChain((was) => was === true || ledger.envelopes.member(envelopeId));
+      })
       // Only a failed first look is an error; a failed Check again keeps the page where it was.
       .catch(() => live && setOnChain((was) => (was === undefined || typeof was === 'string' ? READ_FAILED : was)));
     return () => {
@@ -67,6 +78,7 @@ export const Share = () => {
       services.reader
         .readLedger()
         .then((ledger) => {
+          setLedger(ledger);
           if (ledger.envelopes.member(envelopeId)) setOnChain(true);
         })
         .catch(() => undefined);
@@ -77,6 +89,30 @@ export const Share = () => {
       clearTimeout(late);
     };
   }, [services.reader, envelopeId, onChain]);
+
+  // On chain: read again while the page is open, so links that were opened show as opened.
+  useEffect(() => {
+    if (onChain !== true) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      services.reader
+        .readLedger()
+        .then(setLedger)
+        .catch(() => undefined);
+    }, SHARE_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [services.reader, onChain]);
+
+  // Which of this envelope's lì xì are opened, from the last read; it feeds the rows and the sender's news.
+  const view = useMemo(
+    () =>
+      ledger && saved && seed && ledger.envelopes.member(envelopeId!)
+        ? envelopeView(ledger, seed, saved, services.now())
+        : undefined,
+    [ledger, saved, seed, envelopeId, services],
+  );
+  const views = useMemo(() => (view ? [view] : undefined), [view]);
+  const { toasts, closeToast } = useOpenedNews(views);
 
   if (!found)
     return (
@@ -120,7 +156,14 @@ export const Share = () => {
     );
 
   const { spec } = found;
-  const links = linksFor(found).map((link) => ({ link, url: claimUrl(services.origin, link) }));
+  const opened = (n: number, kind: 'personal' | 'group') =>
+    kind === 'group' ? (view?.claimed ?? 0) === spec.count : (view?.shares[n]?.opened ?? false);
+  const links = linksFor(found).map((link, n) => ({
+    link,
+    url: claimUrl(services.origin, link),
+    opened: opened(n, link.kind),
+  }));
+  const unopened = links.filter((l) => !l.opened);
   const expiry = new Date(Number(saved!.expiry) * 1000);
   return (
     <Page>
@@ -142,37 +185,60 @@ export const Share = () => {
           />
         </label>
         <ul>
-          {links.map(({ link, url }, n) => {
+          {links.map(({ link, url, opened }, n) => {
             const name =
               link.kind === 'group'
                 ? `One link for ${spec.count} people, ${formatNight(spec.total / BigInt(spec.count))} tNIGHT each, one per wallet`
                 : `Lì xì ${n + 1}`;
             return (
               <li key={url} className="flex flex-wrap items-center gap-4 border-t border-white/10 py-3">
-                <Light state="lit" size={link.kind === 'group' ? 'lg' : 'md'} />
+                <Light state={opened ? 'out' : 'lit'} size={link.kind === 'group' ? 'lg' : 'md'} />
                 <span className="flex-1">
                   {name}
-                  {link.kind === 'personal' && (
-                    <span className="block text-sm text-paper-dim">{formatNight(link.share.amount)} tNIGHT</span>
+                  {link.kind === 'personal' ? (
+                    <span className="block text-sm text-paper-dim">
+                      {formatNight(link.share.amount)} tNIGHT{opened ? ' · opened' : ''}
+                    </span>
+                  ) : (
+                    view && (
+                      <span className="block text-sm text-paper-dim">
+                        {view.claimed} of {spec.count} opened
+                      </span>
+                    )
                   )}
                 </span>
-                <span className="flex flex-wrap justify-end gap-2">
-                  <CopyButton text={shareMessage({ greeting, url, expiry })} label="Copy message" name={name} strong />
-                  <CopyButton text={url} label="Copy link" name={name} />
-                </span>
+                {!opened && (
+                  <span className="flex flex-wrap justify-end gap-2">
+                    <CopyButton
+                      text={shareMessage({ greeting, url, expiry })}
+                      label="Copy message"
+                      name={name}
+                      strong
+                    />
+                    <CopyButton text={url} label="Copy link" name={name} />
+                  </span>
+                )}
               </li>
             );
           })}
         </ul>
         <div className="flex flex-wrap gap-3">
-          {links.length > 1 && (
-            <CopyButton text={links.map((l) => l.url).join('\n')} label={`Copy all ${links.length} links`} />
+          {unopened.length > 1 && (
+            <CopyButton
+              text={unopened.map((l) => l.url).join('\n')}
+              label={
+                unopened.length === links.length
+                  ? `Copy all ${links.length} links`
+                  : `Copy all ${unopened.length} unopened links`
+              }
+            />
           )}
           <ButtonLink to="/dashboard" tone="quiet">
             See them in My envelopes
           </ButtonLink>
         </div>
       </div>
+      <Toasts toasts={toasts} onClose={closeToast} />
     </Page>
   );
 };

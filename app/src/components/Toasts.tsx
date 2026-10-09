@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { newlyOpened } from '../lib/news';
+import type { EnvelopeView } from '../lib/status';
 import { Light } from './Light';
 
 export const TOAST_MS = 6_000;
@@ -39,3 +41,25 @@ export const Toasts = ({ toasts, onClose }: { toasts: readonly Toast[]; onClose:
     </ul>
   </div>
 );
+
+/**
+ * News for the sender (user moments spec §3.6): compares each new set of envelope views with the one
+ * before and makes a toast per envelope with newly opened lì xì. The first views only set the baseline.
+ * At most three toasts show; the oldest goes first.
+ */
+export const useOpenedNews = (views: readonly EnvelopeView[] | undefined) => {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const seen = useRef<readonly EnvelopeView[] | undefined>(undefined);
+  const nextKey = useRef(0);
+  const closeToast = useCallback((key: number) => setToasts((t) => t.filter((x) => x.key !== key)), []);
+  useEffect(() => {
+    if (!views) return;
+    if (seen.current) {
+      const news = newlyOpened(seen.current, views);
+      if (news.length > 0)
+        setToasts((t) => [...t, ...news.map((n) => ({ key: nextKey.current++, text: n.text }))].slice(-3));
+    }
+    seen.current = views;
+  }, [views]);
+  return { toasts, closeToast };
+};

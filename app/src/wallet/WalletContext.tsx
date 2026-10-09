@@ -4,7 +4,8 @@ import type { LixiChain, ProverChoice } from '../chain/port';
 import { useServices } from '../services';
 import { readBalances, type Balances } from './balances';
 import { connectWallet } from './connector';
-import { friendlyError } from './errors';
+import { friendlyError, messageOf } from './errors';
+import { redactUrl } from '@lixi/sdk/network';
 
 export type ConnectedWallet = {
   readonly name: string;
@@ -60,7 +61,31 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       api.current = undefined;
       setState({ status: 'connecting', name: initial.name });
       try {
-        const connected = await connectWallet(initial, services.config.network);
+        // DEBUG (temporary, not for commit): which wallet call fails while connecting.
+        const dbg = (...a: unknown[]) => console.warn('[lixi debug]', ...a);
+        dbg('connect() start');
+        const raw = await connectWallet(initial, services.config.network).catch((e) => {
+          dbg('connect() FAILED:', redactUrl(messageOf(e)), e);
+          throw e;
+        });
+        dbg('connect() ok');
+        const connected = new Proxy(raw, {
+          get(t, prop, r) {
+            const v = Reflect.get(t, prop, r);
+            if (typeof v !== 'function') return v;
+            return async (...args: unknown[]) => {
+              dbg(String(prop), 'start');
+              try {
+                const out = await v.apply(t, args);
+                dbg(String(prop), 'ok');
+                return out;
+              } catch (e) {
+                dbg(String(prop), 'FAILED:', redactUrl(messageOf(e)), e);
+                throw e;
+              }
+            };
+          },
+        });
         const { unshieldedAddress } = await connected.getUnshieldedAddress();
         // The SDK pulls in the ledger WASM; load it only once a wallet connects, so the shell paints first (user moments spec §3.1).
         const { userAddressBytes } = await import('@lixi/sdk');
