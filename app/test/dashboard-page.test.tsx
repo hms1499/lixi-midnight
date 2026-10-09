@@ -205,7 +205,7 @@ describe('my envelopes', () => {
       await chain.claim({ ...second, recipient: rnd() });
       await act(() => vi.advanceTimersByTimeAsync(REFRESH_MS));
       await screen.findByText('A lì xì was just opened: 1 tNIGHT.');
-      await user.click(screen.getByRole('button', { name: 'Close' }));
+      await user.click(screen.getByRole('button', { name: 'Close: A lì xì was just opened: 1 tNIGHT.' }));
       expect(screen.queryByText(/just opened/)).toBeNull();
     } finally {
       vi.useRealTimers();

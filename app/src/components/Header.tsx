@@ -75,11 +75,17 @@ const WalletControl = () => {
               <span aria-hidden="true" className="hidden text-paper-dim sm:inline">
                 ·
               </span>
-              <span>{`${formatBalanceNight(balances.night)} tNIGHT · ${formatBalanceDust(balances.dust)} DUST`}</span>
+              {/* Below xl the header has no room for DUST; 1AM pays the fees anyway. One of the two shows. */}
+              <span className="hidden xl:inline">{`${formatBalanceNight(balances.night)} tNIGHT · ${formatBalanceDust(balances.dust)} DUST`}</span>
+              <span className="xl:hidden">{`${formatBalanceNight(balances.night)} tNIGHT`}</span>
             </>
           )}
         </span>
-        <button type="button" className="text-paper-soft underline-offset-4 hover:underline" onClick={disconnect}>
+        <button
+          type="button"
+          className="whitespace-nowrap text-paper-soft underline-offset-4 hover:underline"
+          onClick={disconnect}
+        >
           Disconnect
         </button>
       </span>
@@ -154,21 +160,21 @@ export const Header = () => {
           <Light state="lit" size="sm" />
           Lixi
         </Link>
-        <nav aria-label="Sections" className="hidden gap-5 text-sm md:flex">
+        <nav aria-label="Sections" className="hidden gap-5 text-sm whitespace-nowrap lg:flex">
           {links}
         </nav>
         <div className="ml-auto flex items-center gap-3 text-sm">
-          <span className="hidden rounded-full border border-seal/40 px-2.5 py-1 text-xs text-seal sm:inline">
+          <span className="hidden rounded-full border border-seal/40 px-2.5 py-1 text-xs whitespace-nowrap text-seal sm:inline">
             Preprod testnet
           </span>
-          <Link to="/dashboard" className="hidden hover:text-paper md:inline">
+          <Link to="/dashboard" className="hidden whitespace-nowrap hover:text-paper lg:inline">
             My envelopes
           </Link>
           <WalletControl />
           <button
             ref={menuButton}
             type="button"
-            className="icon-link md:hidden"
+            className="icon-link lg:hidden"
             aria-label="Menu"
             aria-expanded={menu}
             onClick={() => setMenu((m) => !m)}
@@ -178,7 +184,7 @@ export const Header = () => {
         </div>
       </div>
       {menu && (
-        <div ref={panel} onKeyDown={onMenuKey} className="border-t border-white/10 px-4 py-4 md:hidden">
+        <div ref={panel} onKeyDown={onMenuKey} className="border-t border-white/10 px-4 py-4 lg:hidden">
           <nav aria-label="Menu" className="flex flex-col gap-3 text-base">
             {links}
             <Link to="/dashboard" className="py-1">

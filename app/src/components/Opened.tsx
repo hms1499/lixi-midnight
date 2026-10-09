@@ -39,7 +39,18 @@ export const SlipAmount = ({ amount }: { amount: bigint }) => {
   const shown = formatFixed(useCountUp(amount), decimals);
   return (
     <span className="flex h-full flex-col items-center justify-start overflow-hidden px-1 pt-2 text-center">
-      <span className={`font-semibold text-lantern-deep ${sizeFor(final)}`}>{shown}</span>
+      <span className={`font-semibold text-lantern-deep ${sizeFor(final)}`}>
+        {/* Fraunces' digits differ in width; a fixed cell per digit keeps the counting amount still. */}
+        {[...shown].map((ch, i) =>
+          /\d/.test(ch) ? (
+            <span key={i} className="digit">
+              {ch}
+            </span>
+          ) : (
+            ch
+          ),
+        )}
+      </span>
       <span className="text-[10px] tracking-wide text-seal-ink">tNIGHT</span>
     </span>
   );

@@ -219,3 +219,18 @@ describe('friendlyError', () => {
     );
   });
 });
+
+describe('a page or module that could not load', () => {
+  it('says to reload, not to wait for the wallet', () => {
+    const reload = 'Part of Lixi could not load. Reload the page; your link stays in the address bar.';
+    expect(
+      friendlyError(
+        new TypeError('Failed to fetch dynamically imported module: https://lixi.test/assets/midnight-x.js'),
+      ),
+    ).toBe(reload);
+    expect(friendlyError(new TypeError('Importing a module script failed.'))).toBe(reload);
+    expect(friendlyError(new TypeError('error loading dynamically imported module: https://lixi.test/a.js'))).toBe(
+      reload,
+    );
+  });
+});

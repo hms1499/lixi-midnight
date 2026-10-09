@@ -22,6 +22,8 @@ describe('claim page', () => {
     await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
     const envelope = await screen.findByRole('img', { name: 'An opened lì xì: 1 tNIGHT' });
     expect(envelope.querySelector('.slip')!.textContent).toBe('1tNIGHT');
+    // Each digit sits in a fixed-width cell, so the counting amount keeps its width.
+    expect(envelope.querySelectorAll('.slip .digit')).toHaveLength(1);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('You opened 1 tNIGHT');
     expect(document.querySelectorAll('.blossom')).toHaveLength(12);
     expect(screen.getByRole('link', { name: 'See it on the explorer' }).getAttribute('href')).toBe(txUrl('tx2'));
@@ -383,5 +385,32 @@ describe('claim page', () => {
     expect(screen.getByText('which lì xì in the envelope you got')).toBeTruthy();
     expect(screen.queryByText('what the unopened lì xì hold')).toBeNull();
     expect(screen.queryByText('how many lì xì this envelope holds')).toBeNull();
+  });
+
+  it('names where proofs are really made, when the wallet cannot make them', async () => {
+    const user = userEvent.setup();
+    const { show, create, chain } = setup();
+    const [link] = await create();
+    let finish!: () => void;
+    const realClaim = chain.claim;
+    const local = {
+      ...chain,
+      prover: 'local' as const,
+      claim: async (args: Parameters<typeof chain.claim>[0], onStage?: Parameters<typeof chain.claim>[1]) => {
+        onStage?.('proving');
+        await new Promise<void>((resolve) => (finish = resolve));
+        return realClaim(args);
+      },
+    };
+    cleanup();
+    const { show: showLocal } = setup({ openChain: async () => local, reader: chain });
+    void show;
+    showLocal(claimUrl('', link));
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
+    await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
+    await screen.findByText('On this computer');
+    expect(screen.queryByText('In 1AM')).toBeNull();
+    finish();
+    await screen.findByRole('img', { name: /^An opened lì xì/ });
   });
 });

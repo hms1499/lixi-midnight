@@ -88,7 +88,10 @@ export const claimWithLink = async (
       if (link.kind === 'group' && ledger.addrClaims.member(pureCircuits.addrKey(ready.args.id, { bytes: recipient })))
         return { ok: true, amount: ready.amount, total: ready.total, txHash: '' };
       const taken = ledger.nullifiers.member(pureCircuits.nullifierOf(ready.args.id, ready.args.share.secret));
-      if (taken && link.kind === 'group' && attempt < tries) continue;
+      if (taken && link.kind === 'group' && attempt < tries) {
+        onStage?.('proving'); // the next attempt starts over, so the progress does too
+        continue;
+      }
       const again = prepare(ledger, link, recipient, now());
       if (!again.ok) return again;
       throw error;

@@ -23,6 +23,8 @@ export type LixiChain = LixiReader & {
   claim(args: ClaimTxArgs, onStage?: OnStage): Promise<string>;
   /** Resolves to the transaction hash. */
   refund(privateState: LixiPrivateState, id: Uint8Array, onStage?: OnStage): Promise<string>;
+  /** Where this chain really makes proofs, when it knows: a wallet without a prover falls back to the local one. */
+  readonly prover?: ProverChoice;
 };
 
 /** Where proofs are made (audit H4): in the wallet (1AM), or by the proof server on this machine. */

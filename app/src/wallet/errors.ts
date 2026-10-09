@@ -39,6 +39,9 @@ export const friendlyError = (error: unknown): string => {
   // the proof server is down, and when the CSP blocks a wallet's proof server that is not local (audit H4).
   if (/returned an error: TypeError: Failed to fetch/.test(text))
     return `A proof server could not be reached. Start the local one with “${PROOF_SERVER_COMMAND}”, or choose In 1AM under Advanced.`;
+  // Chrome, Firefox and Safari word a failed dynamic import differently; a redeploy or a dropped connection.
+  if (/dynamically imported module|Importing a module script failed/i.test(text))
+    return 'Part of Lixi could not load. Reload the page; your link stays in the address bar.';
   if (text === 'corrupt vault')
     return 'Your saved Lixi data cannot be read. Restore it from your backup string on the Dashboard.';
   if (text === 'expiry out of range') return 'That expiry is outside what the contract allows. Pick another one.';

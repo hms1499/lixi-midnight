@@ -69,4 +69,9 @@ describe('walletChain', () => {
     expect(refundSeen).toEqual(['waiting']);
     expect(claimSeen).toEqual(['waiting']);
   });
+
+  it('says it proves on this computer when the wallet offers no prover, whatever was chosen', async () => {
+    expect((await walletChain(api, config, 'wallet')).prover).toBe('local');
+    expect((await walletChain(api, config, 'local')).prover).toBe('local');
+  });
 });

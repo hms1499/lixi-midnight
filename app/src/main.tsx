@@ -9,6 +9,7 @@ import { App, preloadPages } from './App';
 import type { LixiReader } from './chain/port';
 import { appConfig } from './config';
 import { isMobile } from './lib/device';
+import { loadOnce } from './lib/lazy-once';
 import { nowSeconds } from './lib/time';
 import { ServicesProvider, type Services } from './services';
 import { detectWallets } from './wallet/connector';
@@ -17,14 +18,14 @@ import { WalletProvider } from './wallet/WalletContext';
 const config = appConfig(import.meta.env);
 setNetworkId(config.network); // before any provider is created
 
-// The chain module pulls in ~4.8 MB of WASM. Load it on first use, so pages paint before it arrives (user moments spec §3.1).
-let chainModule: Promise<typeof import('./chain/midnight')> | undefined;
-const loadChain = () => (chainModule ??= import('./chain/midnight'));
-let reader: Promise<LixiReader> | undefined;
+// The chain module pulls in ~4.8 MB of WASM. Load it on first use, so pages paint before it arrives (user moments
+// spec §3.1). A failed load is forgotten, so the next read or connect tries again.
+const loadChain = loadOnce(() => import('./chain/midnight'));
+const loadReader = loadOnce(async (): Promise<LixiReader> => (await loadChain()).publicReader(config));
 
 const services: Services = {
   config,
-  reader: { readLedger: async () => (await (reader ??= loadChain().then((m) => m.publicReader(config)))).readLedger() },
+  reader: { readLedger: async () => (await loadReader()).readLedger() },
   storage: window.localStorage,
   now: nowSeconds,
   origin: window.location.origin,
@@ -50,6 +51,6 @@ createRoot(document.getElementById('root')!).render(
 const whenIdle = (run: () => void) =>
   typeof requestIdleCallback === 'function' ? requestIdleCallback(run) : setTimeout(run, 1000);
 whenIdle(() => {
-  void loadChain();
+  loadChain().catch(() => undefined); // a later read or connect retries and reports it
   preloadPages();
 });

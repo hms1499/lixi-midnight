@@ -56,13 +56,15 @@ const localProver = (url: string, zk: FetchZkConfigProvider<LixiCircuit>): Proof
 export const walletChain = async (api: ConnectedAPI, config: AppConfig, prover: ProverChoice): Promise<LixiChain> => {
   const zk = new FetchZkConfigProvider<LixiCircuit>(window.location.origin, fetch.bind(window));
   const shielded = await api.getShieldedAddresses();
+  const provesWith: ProverChoice =
+    prover === 'wallet' && typeof api.getProvingProvider === 'function' ? 'wallet' : 'local';
   const publicDataProvider = publicData(config);
   const providers: LixiProviders = {
     privateStateProvider: memoryPrivateStateProvider(),
     publicDataProvider,
     zkConfigProvider: zk,
     proofProvider:
-      prover === 'wallet' && typeof api.getProvingProvider === 'function'
+      provesWith === 'wallet'
         ? createProofProvider(await api.getProvingProvider(zk))
         : localProver(NETWORKS[config.network].proofServer, zk),
     walletProvider: {
@@ -84,6 +86,7 @@ export const walletChain = async (api: ConnectedAPI, config: AppConfig, prover: 
   // Each call gets its own wrapped providers, so two transactions in flight never mix their stages.
   const staged = (onStage?: OnStage) => withStages(providers, () => onStage);
   return {
+    prover: provesWith,
     readLedger: () => readLedger(publicDataProvider, address),
     create: (privateState, args, onStage) => createEnvelopeTx(staged(onStage), address, privateState, args),
     claim: (args, onStage) => claimTx(staged(onStage), address, args),

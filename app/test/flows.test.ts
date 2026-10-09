@@ -232,8 +232,25 @@ describe('claim', () => {
       return realClaim(args, onStage);
     };
     const seen: string[] = [];
+    const realRead = chain.readLedger;
+    chain.readLedger = async () => {
+      seen.push('read');
+      return realRead();
+    };
     expect(await claimWithLink(chain, link, rnd(), now, (s) => seen.push(s))).toMatchObject({ ok: true });
-    expect(seen).toEqual(['proving', 'confirm', 'proving', 'confirm', 'sending', 'waiting']);
+    // The retry shows "proving" as soon as it decides to retry, not after the next attempt's reads.
+    expect(seen).toEqual([
+      'read',
+      'proving',
+      'confirm',
+      'read',
+      'proving',
+      'read',
+      'proving',
+      'confirm',
+      'sending',
+      'waiting',
+    ]);
   });
 });
 

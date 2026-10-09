@@ -100,7 +100,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         api.current = connected;
         setState({
           status: 'connected',
-          wallet: { name: initial.name, address: unshieldedAddress, recipient, chain, prover },
+          wallet: { name: initial.name, address: unshieldedAddress, recipient, chain, prover: opened.prover ?? prover },
         });
         void refreshBalances(); // a hint: connecting does not wait for it
       } catch (error) {

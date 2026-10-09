@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { Route, Routes } from 'react-router';
+import { Route, Routes, useLocation } from 'react-router';
 import { EnvelopeChecking } from './components/Envelope';
 import { Layout, Page } from './components/Layout';
 import { LoadBoundary } from './components/LoadBoundary';
@@ -23,7 +23,8 @@ const Dashboard = lazy(() => pages.dashboard().then((m) => ({ default: m.Dashboa
 
 /** Starts loading every lazy page, so a later click does not wait. */
 export const preloadPages = (): void => {
-  for (const load of Object.values(pages)) void load();
+  // A failed preload is fine: opening the page loads it again, and the load boundary explains a failure there.
+  for (const load of Object.values(pages)) load().catch(() => undefined);
 };
 
 const Loading = () => (
@@ -40,10 +41,13 @@ const ClaimLoading = () => (
   </Page>
 );
 
-const Lazy = ({ children, fallback = <Loading /> }: { children: ReactNode; fallback?: ReactNode }) => {
+/** A lazy page with its loading view, and a reload offer if its code fails to load. */
+export const Lazy = ({ children, fallback = <Loading /> }: { children: ReactNode; fallback?: ReactNode }) => {
   const { reload } = useServices();
+  // Keyed by path: react-router reuses route elements, so a failed page would otherwise stick to the next one.
+  const { pathname } = useLocation();
   return (
-    <LoadBoundary onReload={reload}>
+    <LoadBoundary key={pathname} onReload={reload}>
       <Suspense fallback={fallback}>{children}</Suspense>
     </LoadBoundary>
   );

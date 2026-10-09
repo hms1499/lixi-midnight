@@ -8,15 +8,14 @@ const ROWS: Record<TxStage, { label: string; sub?: (prover: ProverChoice) => str
   waiting: { label: 'Waiting for a block' },
 };
 
-/** Whole seconds since `key` last changed. */
+/** Whole seconds since `key` last changed. A new key shows 0 on its first paint, before the timer restarts. */
 const useSecondsSince = (key: unknown): number => {
-  const [seconds, setSeconds] = useState(0);
+  const [count, setCount] = useState({ key, seconds: 0 });
   useEffect(() => {
-    setSeconds(0);
-    const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
+    const timer = setInterval(() => setCount((c) => ({ key, seconds: c.key === key ? c.seconds + 1 : 1 })), 1000);
     return () => clearInterval(timer);
   }, [key]);
-  return seconds;
+  return count.key === key ? count.seconds : 0;
 };
 
 /**
@@ -26,10 +25,14 @@ const useSecondsSince = (key: unknown): number => {
 export const TxProgress = ({ stage, prover }: { stage?: TxStage; prover: ProverChoice }) => {
   const current = TX_STAGES.indexOf(stage ?? 'proving');
   const seconds = useSecondsSince(current);
+  // Screen readers often skip what a live region holds when it is inserted, so it starts empty and fills after.
+  const label = ROWS[TX_STAGES[current]].label;
+  const [announced, setAnnounced] = useState('');
+  useEffect(() => setAnnounced(label), [label]);
   return (
     <div className="space-y-2 text-left">
       <p role="status" className="sr-only">
-        {ROWS[TX_STAGES[current]].label}
+        {announced}
       </p>
       <ol aria-label="Transaction progress" className="space-y-2.5">
         {TX_STAGES.map((s, i) => {

@@ -4,6 +4,8 @@ import type { EnvelopeView } from '../lib/status';
 import { Light } from './Light';
 
 export const TOAST_MS = 6_000;
+/** At most this many toasts show at once. */
+const MAX_TOASTS = 3;
 export type Toast = { readonly key: number; readonly text: string };
 
 const Item = ({ toast, onClose }: { toast: Toast; onClose: (key: number) => void }) => {
@@ -18,7 +20,7 @@ const Item = ({ toast, onClose }: { toast: Toast; onClose: (key: number) => void
       <button
         type="button"
         onClick={() => onClose(toast.key)}
-        aria-label="Close"
+        aria-label={`Close: ${toast.text}`}
         className="px-1 text-paper-dim hover:text-paper"
       >
         ×
@@ -45,7 +47,7 @@ export const Toasts = ({ toasts, onClose }: { toasts: readonly Toast[]; onClose:
 /**
  * News for the sender (user moments spec §3.6): compares each new set of envelope views with the one
  * before and makes a toast per envelope with newly opened lì xì. The first views only set the baseline.
- * At most three toasts show; the oldest goes first.
+ * At most three toasts show: older toasts go first, then the least new envelopes of the same read.
  */
 export const useOpenedNews = (views: readonly EnvelopeView[] | undefined) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -55,9 +57,12 @@ export const useOpenedNews = (views: readonly EnvelopeView[] | undefined) => {
   useEffect(() => {
     if (!views) return;
     if (seen.current) {
-      const news = newlyOpened(seen.current, views);
-      if (news.length > 0)
-        setToasts((t) => [...t, ...news.map((n) => ({ key: nextKey.current++, text: n.text }))].slice(-3));
+      // News comes newest envelope first; over the cap, older toasts go first, then the least new envelopes.
+      const fresh = newlyOpened(seen.current, views)
+        .slice(0, MAX_TOASTS)
+        .map((n) => ({ key: nextKey.current++, text: n.text }));
+      if (fresh.length > 0)
+        setToasts((t) => [...t.slice(Math.max(0, t.length - (MAX_TOASTS - fresh.length))), ...fresh]);
     }
     seen.current = views;
   }, [views]);

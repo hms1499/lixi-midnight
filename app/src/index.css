@@ -263,6 +263,13 @@
     rotate: 45deg;
   }
 
+  /* The slip amount's digits, each in a cell as wide as Fraunces' widest digit (~0.59 em). */
+  .digit {
+    display: inline-block;
+    width: 0.6em;
+    text-align: center;
+  }
+
   /* ── Hoa mai: blossoms that fall once when a lì xì opens (user moments spec §3.5). ── */
   .blossoms {
     position: absolute;
