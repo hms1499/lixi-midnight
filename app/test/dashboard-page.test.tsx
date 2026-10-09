@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { backupString, newVault, userAddressBytes } from '@lixi/sdk';
+import { TOAST_MS } from '../src/components/Toasts';
 import { refundEnvelope } from '../src/flows/manage';
 import { txUrl } from '../src/lib/links';
 import { VAULT_KEY } from '../src/lib/storage';
@@ -168,5 +169,46 @@ describe('my envelopes', () => {
     ).toEqual(['done', 'done', 'now', 'later']);
     finish();
     await screen.findByText('Came home: 2 tNIGHT.');
+  });
+
+  it('tells the sender when a lì xì is opened while the page is open, and the news goes after a while', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { show, create, chain } = setup();
+      const [first] = await create();
+      if (first.kind !== 'personal') throw new Error('expected a personal link');
+      show('/dashboard');
+      await screen.findByRole('img', { name: 'Lì xì 1: 1 tNIGHT, waiting' });
+      await act(() => vi.advanceTimersByTimeAsync(REFRESH_MS));
+      expect(screen.queryByText(/just opened/)).toBeNull();
+      await chain.claim({ ...first, recipient: rnd() });
+      await act(() => vi.advanceTimersByTimeAsync(REFRESH_MS));
+      await screen.findByText('A lì xì was just opened: 1 tNIGHT.');
+      await act(() => vi.advanceTimersByTimeAsync(TOAST_MS));
+      expect(screen.queryByText(/just opened/)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('says nothing about openings before the page loaded, and closes the news on its button', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const { show, create, chain } = setup();
+      const [first, second] = await create();
+      if (first.kind !== 'personal' || second.kind !== 'personal') throw new Error('expected personal links');
+      await chain.claim({ ...first, recipient: rnd() });
+      show('/dashboard');
+      await screen.findByRole('img', { name: 'Lì xì 1: 1 tNIGHT, opened' });
+      expect(screen.queryByText(/just opened/)).toBeNull();
+      await chain.claim({ ...second, recipient: rnd() });
+      await act(() => vi.advanceTimersByTimeAsync(REFRESH_MS));
+      await screen.findByText('A lì xì was just opened: 1 tNIGHT.');
+      await user.click(screen.getByRole('button', { name: 'Close' }));
+      expect(screen.queryByText(/just opened/)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Ledger } from '@lixi/contract';
 import type { SenderVault } from '@lixi/sdk';
 import { BackupString } from '../components/BackupPanel';
 import { Page } from '../components/Layout';
 import { Light, type LightState } from '../components/Light';
+import { Toasts, type Toast } from '../components/Toasts';
 import { TxProgress } from '../components/TxProgress';
 import { WalletPanel } from '../components/WalletPanel';
 import { Button, ButtonLink, Notice, Working } from '../components/ui';
 import type { TxStage } from '../chain/port';
 import { forgetEnvelope, refundEnvelope, restoreVault } from '../flows/manage';
+import { newlyOpened } from '../lib/news';
 import { envelopeView, type EnvelopeView } from '../lib/status';
 import { localVaultStore } from '../lib/storage';
 import { formatRelative } from '../lib/time';
@@ -241,6 +243,10 @@ export const Dashboard = () => {
   const { state } = useWallet();
   const [vault, setVault] = useState<{ vault?: SenderVault; error?: string }>({});
   const [ledger, setLedger] = useState<Ledger | string>();
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const seen = useRef<EnvelopeView[] | undefined>(undefined);
+  const nextKey = useRef(0);
+  const closeToast = useCallback((key: number) => setToasts((t) => t.filter((x) => x.key !== key)), []);
   const [show, setShow] = useState<'none' | 'backup' | 'restore'>('none');
   const [mode, setMode] = useState<View>(() => (services.storage.getItem(VIEW_KEY) === 'list' ? 'list' : 'lights'));
   const choose = (m: View) => {
@@ -273,6 +279,20 @@ export const Dashboard = () => {
     }, REFRESH_MS);
     return () => clearInterval(timer);
   }, [services]);
+
+  // News for the sender (spec §3.6): compare each read with the one before. The first read only sets the baseline.
+  useEffect(() => {
+    const v = vault.vault;
+    if (!v || !ledger || typeof ledger === 'string') return;
+    const now = services.now();
+    const current = [...v.envelopes].sort((a, b) => b.index - a.index).map((e) => envelopeView(ledger, v.seed, e, now));
+    if (seen.current) {
+      const news = newlyOpened(seen.current, current);
+      if (news.length > 0)
+        setToasts((t) => [...t, ...news.map((n) => ({ key: nextKey.current++, text: n.text }))].slice(-3));
+    }
+    seen.current = current;
+  }, [ledger, vault.vault, services]);
 
   const now = services.now();
   const envelopes = vault.vault?.envelopes ?? [];
@@ -368,6 +388,7 @@ export const Dashboard = () => {
           </div>
         )}
       </div>
+      <Toasts toasts={toasts} onClose={closeToast} />
     </Page>
   );
 };
