@@ -4,7 +4,18 @@ import { CheckIcon, CopyIcon } from './icons';
 type Copy = 'idle' | 'copied' | 'failed';
 
 /** Copies `text`; once copied it stays "Copied" for the visit, so a sender can see which links are out. */
-export const CopyButton = ({ text, label = 'Copy', name }: { text: string; label?: string; name?: string }) => {
+export const CopyButton = ({
+  text,
+  label = 'Copy',
+  name,
+  strong = false,
+}: {
+  text: string;
+  label?: string;
+  name?: string;
+  /** The row's main action: filled red instead of an outline. */
+  strong?: boolean;
+}) => {
   const [state, setState] = useState<Copy>('idle');
   const copy = async () => {
     try {
@@ -26,7 +37,9 @@ export const CopyButton = ({ text, label = 'Copy', name }: { text: string; label
           ? 'border-seal/60 text-seal'
           : state === 'failed'
             ? 'border-error/60 text-error'
-            : 'border-white/15 text-paper hover:border-lantern'
+            : strong
+              ? 'border-lantern-deep bg-lantern-deep text-white hover:bg-[#bd2334]'
+              : 'border-white/15 text-paper hover:border-lantern'
       }`}
     >
       {state === 'copied' ? <CheckIcon /> : <CopyIcon />}

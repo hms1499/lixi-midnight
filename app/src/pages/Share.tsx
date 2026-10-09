@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 import { toHex } from '@lixi/contract';
-import { claimUrl, deriveEnvelope, linksFor } from '@lixi/sdk';
+import { claimUrl, deriveEnvelope, linksFor, type SavedEnvelope } from '@lixi/sdk';
 import { CopyButton } from '../components/CopyButton';
 import { Page } from '../components/Layout';
 import { Light } from '../components/Light';
 import { Button, ButtonLink, Greeting, Notice, Working } from '../components/ui';
+import { GREETING_MAX, loadGreeting, saveGreeting, shareMessage } from '../lib/greeting';
 import { localVaultStore } from '../lib/storage';
 import { formatNight } from '../lib/units';
 import { useServices } from '../services';
@@ -22,16 +23,23 @@ export const Share = () => {
   const [onChain, setOnChain] = useState<boolean | string>();
   const [attempt, setAttempt] = useState(0);
   const [slow, setSlow] = useState(false);
+  const [greeting, setGreeting] = useState(() => loadGreeting(services.storage));
+  const changeGreeting = (text: string) => {
+    const next = text.slice(0, GREETING_MAX);
+    setGreeting(next);
+    saveGreeting(services.storage, next);
+  };
 
   // Derived once per envelope: a fresh id array on every render would make the effects below read the chain again.
-  const { found, unreadable } = useMemo((): {
+  const { found, saved, unreadable } = useMemo((): {
     found?: ReturnType<typeof deriveEnvelope>;
+    saved?: SavedEnvelope;
     unreadable?: string;
   } => {
     try {
       const vault = localVaultStore(services.storage).load();
       const saved = vault?.envelopes.find((e) => toHex(deriveEnvelope(vault.seed, e).id) === id);
-      return { found: saved && vault ? deriveEnvelope(vault.seed, saved) : undefined };
+      return { found: saved && vault ? deriveEnvelope(vault.seed, saved) : undefined, saved };
     } catch (error) {
       return { unreadable: friendlyError(error) };
     }
@@ -113,6 +121,7 @@ export const Share = () => {
 
   const { spec } = found;
   const links = linksFor(found).map((link) => ({ link, url: claimUrl(services.origin, link) }));
+  const expiry = new Date(Number(saved!.expiry) * 1000);
   return (
     <Page>
       <div className="max-w-3xl space-y-6">
@@ -123,6 +132,15 @@ export const Share = () => {
         <Notice tone="warn">
           A link is like cash: whoever opens it first gets the lì xì. Send each one to one person, in a private chat.
         </Notice>
+        <label className="block max-w-md space-y-1">
+          <span className="text-sm text-paper-soft">Greeting</span>
+          <input
+            className="w-full rounded-md border border-white/15 bg-transparent px-3 py-2.5"
+            value={greeting}
+            maxLength={GREETING_MAX}
+            onChange={(e) => changeGreeting(e.target.value)}
+          />
+        </label>
         <ul>
           {links.map(({ link, url }, n) => {
             const name =
@@ -130,7 +148,7 @@ export const Share = () => {
                 ? `One link for ${spec.count} people, ${formatNight(spec.total / BigInt(spec.count))} tNIGHT each, one per wallet`
                 : `Lì xì ${n + 1}`;
             return (
-              <li key={url} className="flex items-center gap-4 border-t border-white/10 py-3">
+              <li key={url} className="flex flex-wrap items-center gap-4 border-t border-white/10 py-3">
                 <Light state="lit" size={link.kind === 'group' ? 'lg' : 'md'} />
                 <span className="flex-1">
                   {name}
@@ -138,7 +156,10 @@ export const Share = () => {
                     <span className="block text-sm text-paper-dim">{formatNight(link.share.amount)} tNIGHT</span>
                   )}
                 </span>
-                <CopyButton text={url} label="Copy link" name={name} />
+                <span className="flex flex-wrap justify-end gap-2">
+                  <CopyButton text={shareMessage({ greeting, url, expiry })} label="Copy message" name={name} strong />
+                  <CopyButton text={url} label="Copy link" name={name} />
+                </span>
               </li>
             );
           })}
