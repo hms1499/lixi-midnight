@@ -126,7 +126,7 @@ describe('claim', () => {
     expect(preview).toMatchObject({ ok: true, expiringSoon: false });
     const who = rnd();
     const result = await claimWithLink(chain, link, who, now);
-    expect(result).toEqual({ ok: true, amount: preview.ok && preview.amount, txHash: 'tx2' });
+    expect(result).toEqual({ ok: true, amount: preview.ok && preview.amount, total: 3_000_000n, txHash: 'tx2' });
     expect(previewClaim(sim.ledger(), link, sim.now)).toEqual({ ok: false, reason: 'already claimed' });
     expect(await claimWithLink(chain, link, rnd(), now)).toEqual({ ok: false, reason: 'already claimed' });
   });

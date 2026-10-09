@@ -44,4 +44,29 @@ describe('walletChain', () => {
     await chain.refund({} as never, new Uint8Array(32)); // no listener: nothing more is reported
     expect(seen).toEqual(['waiting']);
   });
+
+  it('keeps the stages of two transactions in flight apart', async () => {
+    const sdk = await import('@lixi/sdk');
+    let releaseClaim!: () => void;
+    const claimGate = new Promise<void>((resolve) => (releaseClaim = resolve));
+    type Staged = { publicDataProvider: { watchForTxData(id: string): Promise<unknown> } };
+    vi.mocked(sdk.claimTx).mockImplementationOnce((async (providers: Staged) => {
+      await claimGate;
+      await providers.publicDataProvider.watchForTxData('claim');
+      return 'claim-hash';
+    }) as never);
+    vi.mocked(sdk.refundTx).mockImplementationOnce((async (providers: Staged) => {
+      await providers.publicDataProvider.watchForTxData('refund');
+      return 'refund-hash';
+    }) as never);
+    const chain = await walletChain(api, config, 'local');
+    const claimSeen: string[] = [];
+    const refundSeen: string[] = [];
+    const claiming = chain.claim({} as never, (s) => claimSeen.push(s));
+    await chain.refund({} as never, new Uint8Array(32), (s) => refundSeen.push(s));
+    releaseClaim();
+    await claiming;
+    expect(refundSeen).toEqual(['waiting']);
+    expect(claimSeen).toEqual(['waiting']);
+  });
 });

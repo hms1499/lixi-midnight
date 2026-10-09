@@ -12,7 +12,7 @@ Private red envelopes (lì xì) on Midnight: every link is one lì xì, and only
 
 ## Description
 
-On-chain red packets exist on EVM, Solana and BSC, but all of them are public: the whole split and every claim code are on chain. Lixi brings the Vietnamese lì xì to Midnight with more of the privacy it has in real life: openings are public payouts, but nobody watching the chain can tell which link paid one, how many lì xì a personal envelope holds, or what the unopened ones contain.
+On-chain red packets exist on EVM, Solana and BSC, but all of them are public: the whole split and every claim code are on chain. Lixi brings the Vietnamese lì xì to Midnight with more of the privacy it has in real life: openings are public payouts, but nobody watching the chain can tell which link paid one, and with lucky amounts, how many lì xì a personal envelope holds or what the unopened ones contain.
 
 A sender seals tNIGHT into an envelope of up to 16 lì xì (lucky or equal amounts) and shares one link per lì xì, or one group link. A recipient opens a link, sees what is inside, connects 1AM and opens it with a zero-knowledge proof: the proof shows they hold a valid lì xì without saying which, a one-time nullifier stops the link paying twice, and the tNIGHT lands in their wallet. After the expiry the sender brings everything unopened home in one transaction.
 

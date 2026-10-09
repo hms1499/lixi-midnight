@@ -345,32 +345,43 @@ describe('claim page', () => {
     await screen.findByRole('img', { name: /^An opened lì xì/ });
   });
 
-  it('says what the chain saw and never saw, without claiming more for a group link', async () => {
+  it('says what the chain saw and never saw, claiming the count and sizes only for lucky amounts', async () => {
     const user = userEvent.setup();
-    const { show, create } = setup();
-    const [personal] = await create();
-    show(claimUrl('', personal));
-    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
-    await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
-    await screen.findByRole('heading', { name: 'It never saw' });
+    const { show, create, store } = setup();
+    store.save({ seed: new Uint8Array(32).fill(7), envelopes: [] }); // fixed lucky amounts
+    const open = async (link: Parameters<typeof claimUrl>[1]) => {
+      show(claimUrl('', link));
+      await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
+      await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
+      await screen.findByRole('heading', { name: 'It never saw' });
+    };
+
+    const [lucky] = await create({ split: 'random', count: 3, total: 10_000_000n });
+    await open(lucky);
+    expect(screen.getByText(/^[\d.]+ tNIGHT paid to your wallet$/)).toBeTruthy();
     for (const text of [
-      '1 tNIGHT paid to your wallet',
       'that this envelope paid out once more',
       'which link you opened',
       'the secret inside your link',
-      'what the other lì xì hold',
+      'what the unopened lì xì hold',
       'how many lì xì this envelope holds',
     ])
       expect(screen.getByText(text)).toBeTruthy();
     cleanup();
 
+    // Equal amounts: one opening and the public total give away the count and every other size.
+    const [equal] = await create();
+    await open(equal);
+    expect(screen.getByText('1 tNIGHT paid to your wallet')).toBeTruthy();
+    expect(screen.getByText('which link you opened')).toBeTruthy();
+    expect(screen.queryByText('what the unopened lì xì hold')).toBeNull();
+    expect(screen.queryByText('how many lì xì this envelope holds')).toBeNull();
+    cleanup();
+
     const [group] = await create({ kind: 'group', count: 2, total: 2_000_000n });
-    show(claimUrl('', group));
-    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
-    await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
-    await screen.findByRole('heading', { name: 'It never saw' });
+    await open(group);
     expect(screen.getByText('which lì xì in the envelope you got')).toBeTruthy();
-    expect(screen.queryByText('what the other lì xì hold')).toBeNull();
+    expect(screen.queryByText('what the unopened lì xì hold')).toBeNull();
     expect(screen.queryByText('how many lì xì this envelope holds')).toBeNull();
   });
 });

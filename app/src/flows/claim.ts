@@ -11,14 +11,22 @@ import type { LixiChain, OnStage } from '../chain/port';
 
 export type ClaimRefusal = ClaimRejection | 'all shares claimed';
 
-type Ready = { readonly ok: true; readonly args: ClaimArgs; readonly amount: bigint; readonly secondsLeft: number };
+type Ready = {
+  readonly ok: true;
+  readonly args: ClaimArgs;
+  readonly amount: bigint;
+  readonly secondsLeft: number;
+  /** The envelope's deposit, public on chain. */
+  readonly total: bigint;
+};
 type Refused = { readonly ok: false; readonly reason: ClaimRefusal };
 
 export type ClaimPreview =
   | { readonly ok: true; readonly amount: bigint; readonly secondsLeft: number; readonly expiringSoon: boolean }
   | Refused;
 
-export type ClaimResult = { readonly ok: true; readonly amount: bigint; readonly txHash: string } | Refused;
+export type ClaimResult =
+  { readonly ok: true; readonly amount: bigint; readonly total: bigint; readonly txHash: string } | Refused;
 
 /** Any address will do before a wallet is connected: only group envelopes look at it. */
 const NO_ADDRESS = new Uint8Array(32);
@@ -36,7 +44,9 @@ const prepare = (ledger: Ledger, link: ClaimLink, recipient: Uint8Array, now: nu
     return { ok: false, reason: link.kind === 'group' ? 'all shares claimed' : 'already claimed' };
   }
   const check = checkClaim(ledger, args, recipient, now);
-  return check.ok ? { ok: true, args, amount: check.amount, secondsLeft: check.secondsLeft } : check;
+  return check.ok
+    ? { ok: true, args, amount: check.amount, secondsLeft: check.secondsLeft, total: env.deposit }
+    : check;
 };
 
 /** What the recipient sees before connecting a wallet. */
@@ -70,13 +80,13 @@ export const claimWithLink = async (
     if (!ready.ok) return ready;
     try {
       const txHash = await chain.claim({ ...ready.args, recipient }, onStage);
-      return { ok: true, amount: ready.amount, txHash };
+      return { ok: true, amount: ready.amount, total: ready.total, txHash };
     } catch (error) {
       const ledger = await chain.readLedger().catch(() => undefined);
       if (!ledger) throw error;
       // A group records each paid address. If ours is there now, our transaction landed although the call failed.
       if (link.kind === 'group' && ledger.addrClaims.member(pureCircuits.addrKey(ready.args.id, { bytes: recipient })))
-        return { ok: true, amount: ready.amount, txHash: '' };
+        return { ok: true, amount: ready.amount, total: ready.total, txHash: '' };
       const taken = ledger.nullifiers.member(pureCircuits.nullifierOf(ready.args.id, ready.args.share.secret));
       if (taken && link.kind === 'group' && attempt < tries) continue;
       const again = prepare(ledger, link, recipient, now());

@@ -110,7 +110,7 @@ type Phase =
   | { readonly step: 'checking' }
   | { readonly step: 'ready'; readonly preview: Extract<ClaimPreview, { ok: true }>; readonly error?: string }
   | { readonly step: 'opening'; readonly prover: ProverChoice; readonly stage?: TxStage }
-  | { readonly step: 'opened'; readonly amount: bigint; readonly txHash: string }
+  | { readonly step: 'opened'; readonly amount: bigint; readonly total: bigint; readonly txHash: string }
   | { readonly step: 'refused'; readonly reason: ClaimRefusal }
   | { readonly step: 'failed'; readonly message: string };
 
@@ -158,7 +158,7 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
           </Envelope>
           <h1 className="sr-only">You opened {formatNight(phase.amount)} tNIGHT</h1>
           <Greeting className="pt-4">An khang thịnh vượng</Greeting>
-          <PrivacyReceipt amount={phase.amount} kind={link.kind} />
+          <PrivacyReceipt amount={phase.amount} total={phase.total} kind={link.kind} />
           <div className="flex flex-wrap justify-center gap-3">
             {phase.txHash && (
               <a className={buttonClass('quiet')} href={txUrl(phase.txHash)} target="_blank" rel="noreferrer">
@@ -186,7 +186,7 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
       );
       setPhase(
         result.ok
-          ? { step: 'opened', amount: result.amount, txHash: result.txHash }
+          ? { step: 'opened', amount: result.amount, total: result.total, txHash: result.txHash }
           : { step: 'refused', reason: result.reason },
       );
     } catch (error) {

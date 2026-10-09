@@ -30,8 +30,8 @@ const SEEN = [
   'each opening: who received, and how much',
 ];
 const DARK = [
-  'how many lì xì a personal envelope holds',
-  'the sizes of the lì xì nobody has opened',
+  'with lucky amounts, how many lì xì a personal envelope holds',
+  'with lucky amounts, the sizes of the lì xì nobody has opened',
   'which link paid which opening',
   'the secrets inside the links',
 ];

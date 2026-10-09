@@ -71,7 +71,7 @@ flowchart LR
 ## How it uses Midnight
 
 - **One Compact contract** holds every envelope: `createEnvelope`, `claim` and `refund`. Its ledger stores, per envelope, a Merkle root, the deposit, the expiry, the refund address, the group flag and whether it was refunded, plus a set of spent nullifiers, a set of address keys for group links, and the allowed expiry range.
-- **Private state stays private.** The split lives in the sender's browser. A claim takes the share and its Merkle path as private witnesses; the circuit checks the path against the root, spends a one-time nullifier, and pays the share out. The chain never learns the secret, which link paid, or, for personal links, how many lì xì there are and what the unopened ones hold.
+- **Private state stays private.** The split lives in the sender's browser. A claim takes the share and its Merkle path as private witnesses; the circuit checks the path against the root, spends a one-time nullifier, and pays the share out. The chain never learns the secret or which link paid, and, for personal links with lucky amounts, how many lì xì there are and what the unopened ones hold.
 - **Dual ledger.** The proof and the checks run over private data; the payout is an unshielded tNIGHT output to the recipient's address, so the transfer itself is public while the link stays secret.
 - **Hashing is deliberate.** Envelope ids use `persistentHash`; leaves, nodes, nullifiers and address keys use `transientHash` (Poseidon) with domain tags, and off-chain code calls the compiled circuits instead of reimplementing them.
 - **Proving.** Proofs are made in 1AM by default (where 1AM proves is not yet verified; see Limitations), or by a proof server on your own machine (choose "On this computer" under Advanced). Lixi itself never sends a proof to a shared server.
@@ -81,8 +81,8 @@ flowchart LR
 
 | The chain sees | It never sees |
 |---|---|
-| that an envelope exists, its total and its expiry | how many lì xì a personal envelope holds |
-| whether it uses a group link | the sizes of the lì xì nobody has opened |
+| that an envelope exists, its total and its expiry | with lucky amounts, how many lì xì a personal envelope holds |
+| whether it uses a group link | with lucky amounts, the sizes of the lì xì nobody has opened |
 | the sender's address | which link paid which opening |
 | each opening: who received, and how much | the secrets inside the links |
 
@@ -102,6 +102,7 @@ A link works like cash: whoever opens it first gets that lì xì. Its secret liv
 - **The Blockfrost project id ships in the page**, as any browser-side Blockfrost id does.
 - **Payouts are unshielded**, so each opening is public.
 - **Group links:** one person with many wallets can open several lì xì, and because a group splits equally, the first opening reveals how many there are.
+- **Equal amounts:** the total is public, so once one lì xì of an equal split is opened, anyone can work out how many there are and what the rest hold. Lucky amounts keep both hidden. The receipt after opening says only what holds for that envelope.
 
 ## Roadmap (Wave 3)
 

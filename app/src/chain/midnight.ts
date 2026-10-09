@@ -81,22 +81,12 @@ export const walletChain = async (api: ConnectedAPI, config: AppConfig, prover: 
     },
   };
   const address = config.contractAddress;
-  let listener: OnStage | undefined;
-  const staged = withStages(providers, () => listener);
-  /** Runs one transaction with `onStage` as its listener. Pages run one transaction at a time. */
-  const reporting = async <T>(onStage: OnStage | undefined, run: () => Promise<T>): Promise<T> => {
-    listener = onStage;
-    try {
-      return await run();
-    } finally {
-      listener = undefined;
-    }
-  };
+  // Each call gets its own wrapped providers, so two transactions in flight never mix their stages.
+  const staged = (onStage?: OnStage) => withStages(providers, () => onStage);
   return {
     readLedger: () => readLedger(publicDataProvider, address),
-    create: (privateState, args, onStage) =>
-      reporting(onStage, () => createEnvelopeTx(staged, address, privateState, args)),
-    claim: (args, onStage) => reporting(onStage, () => claimTx(staged, address, args)),
-    refund: (privateState, id, onStage) => reporting(onStage, () => refundTx(staged, address, privateState, id)),
+    create: (privateState, args, onStage) => createEnvelopeTx(staged(onStage), address, privateState, args),
+    claim: (args, onStage) => claimTx(staged(onStage), address, args),
+    refund: (privateState, id, onStage) => refundTx(staged(onStage), address, privateState, id),
   };
 };
