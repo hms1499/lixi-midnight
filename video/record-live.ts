@@ -4,6 +4,7 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { clip, concatList, retime, writeFrames, type Segment } from './lib/frames.ts';
 import { OUT } from './lib/paths.ts';
+import { withoutUrls } from './lib/redact.ts';
 import { startScreencast } from './lib/screencast.ts';
 import type { Locator } from 'playwright';
 import { launch1am } from './setup-1am.ts';
@@ -45,7 +46,9 @@ say('Approve the seal in 1AM');
 await page.getByRole('heading', { name: '1 lì xì, ready to hand out' }).waitFor({ timeout: WAIT });
 await page.getByRole('button', { name: 'Copy link: Lì xì 1' }).click();
 const link = await page.evaluate(() => navigator.clipboard.readText());
-await page.goto(link);
+await page.goto(link).catch((e: unknown) => {
+  throw withoutUrls(e); // the link's fragment is its secret
+});
 await page.getByRole('heading', { name: 'Someone sent you a lì xì' }).waitFor({ timeout: 60_000 });
 await page.waitForTimeout(800);
 

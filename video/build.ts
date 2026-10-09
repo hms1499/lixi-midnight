@@ -6,8 +6,8 @@ import { launch, newContext } from './lib/browser.ts';
 import { cueTimes, toSrt, type Cue } from './lib/captions.ts';
 import { renderCard, writeTokens } from './lib/cards.ts';
 import { captureDemo } from './lib/demo-capture.ts';
-import { encodeScene, joinScenes, type Overlay } from './lib/ffmpeg.ts';
-import { clip, concatList, writeFrames } from './lib/frames.ts';
+import { encodeScene, joinScenes, labelSpans, type Overlay } from './lib/ffmpeg.ts';
+import { clip, concatList, writeFrames, type Frame } from './lib/frames.ts';
 import { renderOverlays } from './lib/overlays.ts';
 import { claimCircuit } from './lib/code.ts';
 import { OUT, ROOT } from './lib/paths.ts';
@@ -27,6 +27,12 @@ const { values } = parseArgs({
 
 /** What a scene shows: ffmpeg input args, how long the footage runs, and extra timed labels. */
 type Visual = { video: string[]; footage: number; labels: Overlay[] };
+
+/** Rewrites a recorded scene's frame list from its saved frame times, so list fixes need no new recording. */
+const relist = (dir: string, footage: number): void => {
+  const frames = JSON.parse(readFileSync(`${dir}/frames/times.json`, 'utf8')) as Frame[];
+  writeFileSync(`${dir}/frames.txt`, concatList(frames, footage));
+};
 
 const named = values.scene!;
 const wanted = (s: Scene) =>
@@ -106,6 +112,7 @@ try {
       visual = { video: ['-framerate', '30', '-i', `${dir}/frames/%05d.jpg`], footage: seconds, labels: [] };
     } else if (scene.kind === 'capture') {
       const footage = (JSON.parse(readFileSync(`${dir}/footage.json`, 'utf8')) as { seconds: number }).seconds;
+      relist(dir, footage);
       seconds = sceneSeconds(speech, footage);
       visual = { video: ['-f', 'concat', '-safe', '0', '-i', `${dir}/frames.txt`], footage, labels: [] };
     } else if (live) {
@@ -113,6 +120,7 @@ try {
         seconds: number;
         spedUp: { start: number; end: number; factor: number }[];
       };
+      relist(dir, rec.seconds);
       seconds = sceneSeconds(speech, rec.seconds);
       const labels = rec.spedUp.map((s, i) => ({ png: `${dir}/sped-${i}.png`, start: s.start, end: s.end }));
       await renderOverlays(
@@ -144,7 +152,7 @@ try {
     const items = cues.map((c, i) => ({ text: c.text, label: '', file: overlays[i].png }));
     if (scene.label) {
       items.push({ text: '', label: scene.label, file: `${dir}/label.png` });
-      overlays.push({ png: `${dir}/label.png`, start: 0, end: seconds });
+      for (const span of labelSpans(seconds, visual.labels)) overlays.push({ png: `${dir}/label.png`, ...span });
     }
     await renderOverlays(items);
     await encodeScene({

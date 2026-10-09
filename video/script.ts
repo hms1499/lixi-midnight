@@ -69,7 +69,7 @@ export const SCENES: Scene[] = [
     title: 'How it works',
     kind: 'card',
     narration:
-      "Under the hood is one Compact contract with three circuits: createEnvelope, claim and refund. The claim circuit takes the share and its Merkle path as private witnesses. It checks the path against the envelope's root, records a one-time nullifier, and pays the share out as unshielded tNIGHT. So the payout is public, while which link paid it stays private. The chain sees that an envelope exists, its total, and each payout. With lucky amounts, it never learns how many lì xì a personal envelope holds, or what the unopened ones contain.",
+      "Under the hood is one Compact contract with three circuits: createEnvelope, claim and refund. The claim circuit takes the share and its Merkle path as private witnesses. It checks the path against the envelope's root, records a one-time nullifier, and pays the share out as unshielded tNIGHT. So the payout is public, while which link paid it stays private on chain. The chain sees that an envelope exists, its total, and each payout. With lucky amounts, it never learns how many lì xì a personal envelope holds, or what the unopened ones contain.",
   },
   {
     id: 's8',

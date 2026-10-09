@@ -27,3 +27,11 @@ test('the narration fits a 3:30–4:15 video at the voice’s pace', () => {
   const total = SCENES.reduce((n, s) => n + words(narrationFor(s, 213, true)), 0);
   assert.ok(total >= 480 && total <= 640, `${total} words`);
 });
+
+test('on-screen and spoken privacy claims stay within the README: the chain, not everyone, never learns which link paid', async () => {
+  const { readFileSync } = await import('node:fs');
+  const cards = readFileSync(new URL('../scenes/cards.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(cards, /Nobody can tell which link paid/);
+  const s7 = SCENES.find((s) => s.id === 's7')!.narration;
+  assert.match(s7, /which link paid it stays private on chain/);
+});

@@ -25,14 +25,19 @@ export const retime = (t: number, segments: Segment[]): number => {
 };
 
 /**
- * An ffconcat list showing each frame until the next one, and the last until `end`. Frames that come less than
- * one video frame after the last one kept are dropped, so the durations add up to `end` and sped-up footage
+ * An ffconcat list showing each frame until the next one, and the last until `end`. Frames less than one video
+ * frame apart are merged into one slot showing the newest, so the durations add up to `end` and sped-up footage
  * really plays faster.
  */
 export const concatList = (frames: Frame[], end: number): string => {
   if (frames.length === 0) throw new Error('no frames were recorded');
   const shown: Frame[] = [];
-  for (const f of frames) if (shown.length === 0 || f.at - shown.at(-1)!.at >= 1 / FPS) shown.push(f);
+  for (const f of frames) {
+    if (shown.length === 0 || f.at - shown.at(-1)!.at >= 1 / FPS) shown.push(f);
+    // A frame painted within one video frame of the last one replaces its picture, keeping its time: the newest
+    // paint is what stays on screen, not a stale one.
+    else shown[shown.length - 1] = { ...shown.at(-1)!, file: f.file };
+  }
   const lines = ['ffconcat version 1.0'];
   shown.forEach((f, i) => {
     const next = i + 1 < shown.length ? shown[i + 1].at : end;
