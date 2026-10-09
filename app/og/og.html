@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- The link-preview image (user moments spec §3.2). Render with `npm run og -w @lixi/app`. -->
+    <style>
+      @font-face {
+        font-family: 'Fraunces';
+        src: url('../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-opsz-normal.woff2')
+          format('woff2');
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: 'Fraunces';
+        src: url('../../node_modules/@fontsource-variable/fraunces/files/fraunces-vietnamese-opsz-normal.woff2')
+          format('woff2');
+        font-weight: 100 900;
+        unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+1EA0-1EF9;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 96px;
+        padding: 0 110px;
+        box-sizing: border-box;
+        background: radial-gradient(circle at 26% 52%, #2a0f16 0, #0c0a12 55%);
+        color: #efe2cf;
+        font-family: 'Fraunces', Georgia, serif;
+      }
+      .envelope {
+        position: relative;
+        flex: none;
+        width: 230px;
+        height: 300px;
+        border-radius: 16px;
+        background: linear-gradient(160deg, #ef3346, #b0101f);
+        box-shadow:
+          0 0 60px 16px rgb(239 51 70 / 0.44),
+          0 0 200px 60px rgb(239 51 70 / 0.16);
+      }
+      .envelope::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto;
+        height: 40%;
+        border-radius: 16px 16px 0 0;
+        background: #8f0c1b;
+        clip-path: polygon(0 0, 100% 0, 50% 100%);
+      }
+      .envelope::after {
+        content: '';
+        position: absolute;
+        top: 33%;
+        left: 50%;
+        width: 38px;
+        height: 38px;
+        translate: -50% 0;
+        border-radius: 999px;
+        background: #f2c14e;
+        box-shadow: 0 0 18px #f2c14e;
+      }
+      .light {
+        position: absolute;
+        width: 26px;
+        height: 34px;
+        border-radius: 4px;
+        background: linear-gradient(160deg, #ef3346, #b0101f);
+        box-shadow: 0 0 16px 4px rgb(239 51 70 / 0.38);
+      }
+      .light.out {
+        background: #221a21;
+        box-shadow: none;
+      }
+      h1 {
+        margin: 0 0 18px;
+        font-size: 68px;
+        font-weight: 400;
+        line-height: 1.08;
+      }
+      p {
+        margin: 0;
+        font-size: 30px;
+        color: #b3a593;
+      }
+      .brand {
+        margin-top: 40px;
+        font-size: 26px;
+        color: #f2c14e;
+        letter-spacing: 0.02em;
+      }
+    </style>
+  </head>
+  <body>
+    <span class="light" style="left: 70px; top: 70px"></span>
+    <span class="light out" style="left: 470px; top: 540px"></span>
+    <span class="light" style="left: 1090px; top: 90px"></span>
+    <span class="light out" style="left: 1010px; top: 540px"></span>
+    <div class="envelope"></div>
+    <div>
+      <h1>Every light is one lì xì.</h1>
+      <p>Only its link knows whose.</p>
+      <p class="brand">Lixi · private red envelopes on Midnight</p>
+    </div>
+  </body>
+</html>
