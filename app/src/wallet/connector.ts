@@ -57,10 +57,7 @@ export const balanceOrExplain = async (api: ConnectedAPI, tx: string): Promise<s
   }
 };
 
-/**
- * Connects to `wallet` for `networkId`, giving up with 'connect timed out' after `timeoutMs`. Connect is
- * the first call after a page has sat a while, so it gets the same one retry on 1AM's idle error.
- */
+/** Connects to `wallet` for `networkId`, giving up with 'connect timed out' after `timeoutMs`. */
 export const connectWallet = async (
   wallet: InitialAPI,
   networkId: string,
@@ -71,7 +68,7 @@ export const connectWallet = async (
     timer = setTimeout(() => reject(new Error('connect timed out')), timeoutMs);
   });
   try {
-    return retryingOnce(await Promise.race([retryingOnce(wallet).connect(networkId), timedOut]));
+    return retryingOnce(await Promise.race([wallet.connect(networkId), timedOut]));
   } finally {
     clearTimeout(timer);
   }

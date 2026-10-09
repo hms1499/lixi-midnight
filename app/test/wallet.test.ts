@@ -71,32 +71,6 @@ describe('connectWallet', () => {
     await outcome;
     vi.useRealTimers();
   });
-
-  it('retries connect once after 1AM’s idle "Request failed", the first call when a page has sat a while', async () => {
-    let tries = 0;
-    const api = { getUnshieldedAddress: async () => ({ unshieldedAddress: 'mn_addr' }) } as unknown as ConnectedAPI;
-    const wallet = initial({
-      connect: async () => {
-        if (++tries === 1) throw new Error('Request failed');
-        return api;
-      },
-    });
-    const connected = await connectWallet(wallet, 'preprod');
-    expect(tries).toBe(2);
-    expect(await connected.getUnshieldedAddress()).toEqual({ unshieldedAddress: 'mn_addr' });
-  });
-
-  it('does not retry connect on any other error', async () => {
-    let tries = 0;
-    const wallet = initial({
-      connect: async () => {
-        tries++;
-        throw new Error('User rejected');
-      },
-    });
-    await expect(connectWallet(wallet, 'preprod')).rejects.toThrow('User rejected');
-    expect(tries).toBe(1);
-  });
 });
 
 describe('balanceOrExplain', () => {
