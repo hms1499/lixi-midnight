@@ -38,7 +38,7 @@ Times are targets; each scene's real length is set by its narration (§5.2). Nar
 | 5 | 1:50–2:10 | The same opening live on Preprod with 1AM, then the transaction on the explorer | `live` |
 | 6 | 2:10–2:25 | Dashboard: lights, Bring home after expiry, backup | `capture` (simulator) |
 | 7 | 2:25–3:05 | How it works: Merkle root on chain, private witnesses, nullifier, unshielded payout; the `claim` circuit; the privacy table | `card` (animated diagram + code) |
-| 8 | 3:05–3:30 | Engineering: four packages, the real `npm test` run, CI, devnet e2e, CSP, no admin key | `card` + `terminal` + CI screenshot |
+| 8 | 3:05–3:30 | Engineering: four packages, the real `npm test` run, CI, devnet e2e, CSP, no admin key | `card` (terminal replay + CI screenshot) |
 | 9 | 3:30–3:50 | Market, limits, Wave 3 roadmap | `card` |
 | 10 | 3:50–4:00 | Outro: site, repo, deck | `card` |
 
@@ -78,7 +78,7 @@ The scripts are TypeScript run directly by Node 24, like `app/scripts/*.ts`. Pla
 
 ### 5.1 The storyboard file
 
-`video/script.ts` exports the ten scenes. Each has an `id`, `narration`, `kind` (`card` | `capture` | `live` | `terminal`), and kind-specific parameters: a card page and its animation cues, a capture's Playwright steps, or the live scene's steps. Everything else reads from it, so wording changes happen in one place.
+`video/script.ts` exports the ten scenes. Each has an `id`, `narration`, `kind` (`card` | `capture` | `live`), and an optional corner `label`. Card pages, capture steps and the live steps live in their own files. Everything else reads from it, so wording changes happen in one place.
 
 ### 5.2 Voice and timing
 
@@ -123,7 +123,8 @@ The scripts are TypeScript run directly by Node 24, like `app/scripts/*.ts`. Pla
 ### 5.7 Assembly
 
 - Per scene: frames + narration → `out/<id>.mp4` (H.264, yuv420p, 30 fps), cached by a hash of the scene's inputs. `--scene <n>` rebuilds one scene.
-- Final: the scenes joined with 0.3 s fades, captions burned in (white on a translucent dark band, in the app's sans font), loudness normalised to −16 LUFS. Outputs: `out/lixi-wave2.mp4` and `out/lixi-wave2.srt`.
+- Captions and corner labels are rendered by Playwright as transparent PNGs (Fraunces, light text on a translucent dark band) and overlaid per cue, because the installed ffmpeg 8.1 has no libass `subtitles` filter.
+- Final: each scene fades in and out over 0.3 s, the scenes are joined in order, and loudness is normalised to −16 LUFS. Outputs: `out/lixi-wave2.mp4` and `out/lixi-wave2.srt`.
 - No background music (no licensed track, and the narration carries the video).
 
 ## 6. Checks
