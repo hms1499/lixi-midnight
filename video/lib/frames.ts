@@ -24,24 +24,32 @@ export const retime = (t: number, segments: Segment[]): number => {
   return t - shift;
 };
 
-/** An ffconcat list showing each frame until the next one, and the last until `end`. */
+/**
+ * An ffconcat list showing each frame until the next one, and the last until `end`. Frames that come less than
+ * one video frame after the last one kept are dropped, so the durations add up to `end` and sped-up footage
+ * really plays faster.
+ */
 export const concatList = (frames: Frame[], end: number): string => {
   if (frames.length === 0) throw new Error('no frames were recorded');
+  const shown: Frame[] = [];
+  for (const f of frames) if (shown.length === 0 || f.at - shown.at(-1)!.at >= 1 / FPS) shown.push(f);
   const lines = ['ffconcat version 1.0'];
-  frames.forEach((f, i) => {
-    const next = i + 1 < frames.length ? frames[i + 1].at : end;
-    lines.push(`file '${f.file}'`, `duration ${Math.max(next - f.at, 1 / FPS).toFixed(4)}`);
+  shown.forEach((f, i) => {
+    const next = i + 1 < shown.length ? shown[i + 1].at : end;
+    lines.push(`file '${f.file}'`, `duration ${Math.max(next - f.at, 0).toFixed(4)}`);
   });
-  lines.push(`file '${frames.at(-1)!.file}'`); // the concat demuxer only honours the last duration this way
+  lines.push(`file '${shown.at(-1)!.file}'`); // the concat demuxer only honours the last duration this way
   return `${lines.join('\n')}\n`;
 };
 
-/** Writes shots as numbered JPEGs into `dir`. */
+/** Writes shots as numbered JPEGs into `dir`, and their times to `dir/times.json`, so a list can be rebuilt. */
 export const writeFrames = (shots: Shot[], dir: string): Frame[] => {
   mkdirSync(dir, { recursive: true });
-  return shots.map((s, i) => {
+  const frames = shots.map((s, i) => {
     const file = `${dir}/${String(i).padStart(5, '0')}.jpg`;
     writeFileSync(file, s.data);
     return { file, at: s.at };
   });
+  writeFileSync(`${dir}/times.json`, JSON.stringify(frames));
+  return frames;
 };

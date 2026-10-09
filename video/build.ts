@@ -47,7 +47,7 @@ if (values['fresh-tests'] || !existsSync(testRunFile)) {
 }
 const testRun = JSON.parse(readFileSync(testRunFile, 'utf8')) as TestRun;
 const testCount = testRun.count;
-const live = false; // Task 10 replaces this
+const live = existsSync(`${OUT}s5/live.json`);
 
 const ciPng = `${OUT}s8/ci.png`;
 const cardData = (id: string, seconds: number): unknown => {
@@ -108,8 +108,35 @@ try {
       const footage = (JSON.parse(readFileSync(`${dir}/footage.json`, 'utf8')) as { seconds: number }).seconds;
       seconds = sceneSeconds(speech, footage);
       visual = { video: ['-f', 'concat', '-safe', '0', '-i', `${dir}/frames.txt`], footage, labels: [] };
+    } else if (live) {
+      const rec = JSON.parse(readFileSync(`${dir}/live.json`, 'utf8')) as {
+        seconds: number;
+        spedUp: { start: number; end: number; factor: number }[];
+      };
+      seconds = sceneSeconds(speech, rec.seconds);
+      const labels = rec.spedUp.map((s, i) => ({ png: `${dir}/sped-${i}.png`, start: s.start, end: s.end }));
+      await renderOverlays(
+        rec.spedUp.map((s, i) => ({ text: '', label: `${scene.label} · sped up ${s.factor}×`, file: labels[i].png })),
+      );
+      visual = { video: ['-f', 'concat', '-safe', '0', '-i', `${dir}/frames.txt`], footage: rec.seconds, labels };
     } else {
-      throw new Error(`${scene.id}: ${scene.kind} scenes are built in a later task`);
+      const tx = values['fallback-tx'];
+      if (!tx) throw new Error('scene 5: run `node record-live.ts`, or pass --fallback-tx <claim tx hash>');
+      // Fallback (spec §5.5): the explorer page of a real Preprod claim.
+      const page = await (await newContext(browser)).newPage();
+      await page.goto(`https://preprod.midnightexplorer.com/transactions/0x${tx.replace(/^0x/, '')}`, {
+        waitUntil: 'load',
+      });
+      await page.waitForTimeout(8000); // the explorer keeps polling, so 'networkidle' never comes
+      mkdirSync(`${dir}/frames`, { recursive: true });
+      await page.screenshot({ path: `${dir}/frames/00000.jpg`, type: 'jpeg', quality: 92 });
+      await page.close();
+      seconds = sceneSeconds(speech);
+      visual = {
+        video: ['-loop', '1', '-framerate', '30', '-i', `${dir}/frames/00000.jpg`],
+        footage: seconds,
+        labels: [],
+      };
     }
 
     const cues: Cue[] = cueTimes(text, LEAD, speech, seconds);

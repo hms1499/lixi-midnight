@@ -18,7 +18,7 @@ export const encodeScene = async (o: {
 }): Promise<void> => {
   const n = o.overlays.length;
   const parts = [
-    `[0:v]scale=1920:1080,fps=${FPS},tpad=stop_mode=clone:stop_duration=${f3(o.seconds)},trim=duration=${f3(o.seconds)},setpts=PTS-STARTPTS[v0]`,
+    `[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0x0c0a12,setsar=1,fps=${FPS},tpad=stop_mode=clone:stop_duration=${f3(o.seconds)},trim=duration=${f3(o.seconds)},setpts=PTS-STARTPTS[v0]`,
     ...o.overlays.map(
       (x, i) => `[v${i}][${i + 2}:v]overlay=0:0:enable='between(t,${f3(x.start)},${f3(x.end)})'[v${i + 1}]`,
     ),
@@ -30,7 +30,8 @@ export const encodeScene = async (o: {
     ...o.video,
     '-i',
     o.voice,
-    ...o.overlays.flatMap((x) => ['-i', x.png]),
+    // Looped, so the overlays survive a filter re-init when the footage changes size (a page with a scrollbar).
+    ...o.overlays.flatMap((x) => ['-loop', '1', '-i', x.png]),
     '-filter_complex',
     parts.join(';'),
     '-map',

@@ -32,3 +32,21 @@ test('the concat list holds each frame until the next, and the last until the en
 test('an empty recording is an error, not a silent black scene', () => {
   assert.throws(() => concatList([], 3), /no frames/);
 });
+
+test('frames closer than one video frame are dropped, so sped-up footage really plays faster', () => {
+  const list = concatList(
+    [
+      { file: '/a/0.jpg', at: 0 },
+      { file: '/a/1.jpg', at: 0.01 },
+      { file: '/a/2.jpg', at: 0.02 },
+      { file: '/a/3.jpg', at: 0.5 },
+    ],
+    1,
+  );
+  assert.equal(
+    list,
+    "ffconcat version 1.0\nfile '/a/0.jpg'\nduration 0.5000\nfile '/a/3.jpg'\nduration 0.5000\nfile '/a/3.jpg'\n",
+  );
+  const total = [...list.matchAll(/duration (\S+)/g)].reduce((s, m) => s + Number(m[1]), 0);
+  assert.equal(total, 1);
+});
