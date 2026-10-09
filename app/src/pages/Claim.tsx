@@ -5,9 +5,10 @@ import { Envelope, EnvelopeChecking, type EnvelopeState } from '../components/En
 import { Page } from '../components/Layout';
 import { Light } from '../components/Light';
 import { FeeHint } from '../components/FeeHint';
+import { Blossoms, PrivacyReceipt, SlipAmount } from '../components/Opened';
 import { TxProgress } from '../components/TxProgress';
 import { RequireWallet } from '../components/WalletPanel';
-import { Button, ButtonLink, Greeting, Notice } from '../components/ui';
+import { Button, ButtonLink, Greeting, Notice, buttonClass } from '../components/ui';
 import type { ProverChoice, TxStage } from '../chain/port';
 import { claimWithLink, previewClaim, type ClaimPreview, type ClaimRefusal } from '../flows/claim';
 import { txUrl } from '../lib/links';
@@ -149,27 +150,27 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
     );
   if (phase.step === 'opened')
     return (
-      <Centre>
-        <Envelope state="opened" label="An opened lì xì" />
-        <Greeting className="pt-4">An khang thịnh vượng</Greeting>
-        <h1 className="text-5xl font-bold text-seal">
-          {formatNight(phase.amount)} <span className="text-xl font-normal text-paper">tNIGHT</span>
-        </h1>
-        <p className="text-paper-soft">It is in your wallet. The link’s secret never touched the chain.</p>
-        {phase.txHash && (
-          <a
-            className="block text-sm underline underline-offset-4"
-            href={txUrl(phase.txHash)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            View transaction
-          </a>
-        )}
-        <ButtonLink to="/create" tone="quiet">
-          Send lì xì of your own
-        </ButtonLink>
-      </Centre>
+      <Page>
+        <div className="relative mx-auto max-w-xl space-y-5 text-center">
+          <Blossoms />
+          <Envelope state="opened" label={`An opened lì xì: ${formatNight(phase.amount)} tNIGHT`}>
+            <SlipAmount amount={phase.amount} />
+          </Envelope>
+          <h1 className="sr-only">You opened {formatNight(phase.amount)} tNIGHT</h1>
+          <Greeting className="pt-4">An khang thịnh vượng</Greeting>
+          <PrivacyReceipt amount={phase.amount} kind={link.kind} />
+          <div className="flex flex-wrap justify-center gap-3">
+            {phase.txHash && (
+              <a className={buttonClass('quiet')} href={txUrl(phase.txHash)} target="_blank" rel="noreferrer">
+                See it on the explorer
+              </a>
+            )}
+            <ButtonLink to="/create" tone="quiet">
+              Send lì xì of your own
+            </ButtonLink>
+          </div>
+        </div>
+      </Page>
     );
 
   const opening = phase.step === 'opening';

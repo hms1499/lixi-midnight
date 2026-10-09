@@ -25,4 +25,9 @@ describe('colour tokens', () => {
     for (const [fg, bg] of pairs) expect(contrast(hex(fg), TOKENS[bg]), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
     expect(contrast(TOKENS.lantern, TOKENS.night)).toBeGreaterThanOrEqual(3);
   });
+
+  it('keeps the amount on the slip readable: seal-ink at 4.5:1 and the large red amount at 3:1 on paper', () => {
+    expect(contrast(TOKENS['seal-ink'], TOKENS.paper)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(TOKENS['lantern-deep'], TOKENS.paper)).toBeGreaterThanOrEqual(3);
+  });
 });

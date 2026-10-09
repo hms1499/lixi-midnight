@@ -31,3 +31,10 @@ const SPECK_PER_DUST = 10n ** 15n;
 /** A wallet's DUST in whole units for display, "<1" for a sliver: 5430130207768000000n → "5,430". */
 export const formatBalanceDust = (specks: bigint): string =>
   specks > 0n && specks < SPECK_PER_DUST ? '<1' : grouped(specks / SPECK_PER_DUST);
+
+/** Base units as tNIGHT with exactly `decimals` decimals, cut, not rounded: (1500000n, 1) → "1.5". */
+export const formatFixed = (units: bigint, decimals: number): string => {
+  const whole = units / SCALE;
+  if (decimals === 0) return `${whole}`;
+  return `${whole}.${(units % SCALE).toString().padStart(NIGHT_DECIMALS, '0').slice(0, decimals)}`;
+};

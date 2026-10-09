@@ -20,10 +20,11 @@ describe('claim page', () => {
     await screen.findByText(/1 tNIGHT is sealed inside/);
     await user.click(screen.getByRole('button', { name: 'Connect Test Wallet to open it' }));
     await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
-    await screen.findByText('It is in your wallet. The link’s secret never touched the chain.');
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('1 tNIGHT');
-    expect(screen.getByRole('img', { name: 'An opened lì xì' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'View transaction' }).getAttribute('href')).toBe(txUrl('tx2'));
+    const envelope = await screen.findByRole('img', { name: 'An opened lì xì: 1 tNIGHT' });
+    expect(envelope.querySelector('.slip')!.textContent).toBe('1tNIGHT');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('You opened 1 tNIGHT');
+    expect(document.querySelectorAll('.blossom')).toHaveLength(12);
+    expect(screen.getByRole('link', { name: 'See it on the explorer' }).getAttribute('href')).toBe(txUrl('tx2'));
   });
 
   it('shows the wallet’s balances once connected, and reads them again after opening', async () => {
@@ -38,7 +39,7 @@ describe('claim page', () => {
     await screen.findByText('4,996 tNIGHT · 0 DUST');
     dust = 2n * 10n ** 15n;
     await user.click(screen.getByRole('button', { name: 'Open the lì xì' }));
-    await screen.findByText('It is in your wallet. The link’s secret never touched the chain.');
+    await screen.findByRole('img', { name: /^An opened lì xì/ });
     await screen.findByText('4,996 tNIGHT · 2 DUST');
   });
 
@@ -257,8 +258,8 @@ describe('claim page', () => {
     show(claimUrl('', link));
     await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
     await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
-    await screen.findByText('It is in your wallet. The link’s secret never touched the chain.');
-    expect(screen.queryByRole('link', { name: 'View transaction' })).toBeNull();
+    await screen.findByRole('img', { name: /^An opened lì xì/ });
+    expect(screen.queryByRole('link', { name: 'See it on the explorer' })).toBeNull();
   });
   it('keeps Advanced open after a failed connect, so the prover choice it points to stays in view', async () => {
     const user = userEvent.setup();
@@ -342,5 +343,34 @@ describe('claim page', () => {
     expect(screen.queryByText('Proving, then your wallet asks you to confirm.')).toBeNull();
     finish();
     await screen.findByRole('img', { name: /^An opened lì xì/ });
+  });
+
+  it('says what the chain saw and never saw, without claiming more for a group link', async () => {
+    const user = userEvent.setup();
+    const { show, create } = setup();
+    const [personal] = await create();
+    show(claimUrl('', personal));
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
+    await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
+    await screen.findByRole('heading', { name: 'It never saw' });
+    for (const text of [
+      '1 tNIGHT paid to your wallet',
+      'that this envelope paid out once more',
+      'which link you opened',
+      'the secret inside your link',
+      'what the other lì xì hold',
+      'how many lì xì this envelope holds',
+    ])
+      expect(screen.getByText(text)).toBeTruthy();
+    cleanup();
+
+    const [group] = await create({ kind: 'group', count: 2, total: 2_000_000n });
+    show(claimUrl('', group));
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
+    await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
+    await screen.findByRole('heading', { name: 'It never saw' });
+    expect(screen.getByText('which lì xì in the envelope you got')).toBeTruthy();
+    expect(screen.queryByText('what the other lì xì hold')).toBeNull();
+    expect(screen.queryByText('how many lì xì this envelope holds')).toBeNull();
   });
 });

@@ -267,6 +267,32 @@
     rotate: 45deg;
   }
 
+  /* ── Hoa mai: blossoms that fall once when a lì xì opens (user moments spec §3.5). ── */
+  .blossoms {
+    position: absolute;
+    inset: -40px 0 auto;
+    height: 560px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .blossom {
+    position: absolute;
+    top: -20px;
+    left: var(--x);
+    opacity: 0;
+    animation: fall 1.8s ease-in forwards;
+    animation-delay: calc(var(--i) * 0.05s);
+  }
+  .blossom ellipse {
+    fill: var(--color-seal);
+  }
+  .blossom circle {
+    fill: var(--color-seal-ink);
+  }
+  .receipt {
+    animation: rise 0.3s ease 1.1s both;
+  }
+
   /* ── Icon links (spec §5.4). ── */
   .icon-link {
     position: relative;
@@ -409,11 +435,30 @@
     background: var(--color-seal);
   }
 }
+@keyframes fall {
+  10%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), 480px) rotate(200deg);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
 
 /* Reduced motion: every animation lands on its end state at once. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  .blossoms {
+    display: none;
   }
   *,
   *::before,

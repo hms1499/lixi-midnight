@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatBalanceDust, formatBalanceNight, formatNight, parseNight } from '../src/lib/units';
+import { formatBalanceDust, formatBalanceNight, formatFixed, formatNight, parseNight } from '../src/lib/units';
 import { formatRelative } from '../src/lib/time';
 
 describe('tNIGHT units', () => {
@@ -20,6 +20,16 @@ describe('tNIGHT units', () => {
     expect(formatNight(1_059_505n)).toBe('1.059505');
     expect(formatNight(1n)).toBe('0.000001');
     expect(formatNight(parseNight('12.34'))).toBe('12.34');
+  });
+
+  it('formats with a fixed number of decimals, for amounts that count up without changing width', () => {
+    expect(formatFixed(1_277_978n, 6)).toBe('1.277978');
+    expect(formatFixed(638_989n, 6)).toBe('0.638989');
+    expect(formatFixed(1n, 6)).toBe('0.000001');
+    expect(formatFixed(12_345_123_456n, 6)).toBe('12345.123456');
+    expect(formatFixed(1_500_000n, 1)).toBe('1.5');
+    expect(formatFixed(750_000n, 1)).toBe('0.7');
+    expect(formatFixed(2_000_000n, 0)).toBe('2');
   });
 });
 
