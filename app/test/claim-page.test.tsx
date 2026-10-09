@@ -313,4 +313,34 @@ describe('claim page', () => {
       vi.useRealTimers();
     }
   });
+
+  it('shows each stage of opening as it happens', async () => {
+    const user = userEvent.setup();
+    const { show, create, chain } = setup();
+    const [link] = await create();
+    const realClaim = chain.claim;
+    let finish!: () => void;
+    chain.claim = async (args, onStage) => {
+      onStage?.('proving');
+      onStage?.('confirm');
+      await new Promise<void>((resolve) => (finish = resolve));
+      onStage?.('sending');
+      onStage?.('waiting');
+      return realClaim(args);
+    };
+    show(claimUrl('', link));
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet to open it' }));
+    await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
+    const list = await screen.findByRole('list', { name: 'Transaction progress' });
+    await vi.waitFor(() =>
+      expect(
+        within(list)
+          .getAllByRole('listitem')
+          .map((li) => li.dataset.state),
+      ).toEqual(['done', 'now', 'later', 'later']),
+    );
+    expect(screen.queryByText('Proving, then your wallet asks you to confirm.')).toBeNull();
+    finish();
+    await screen.findByRole('img', { name: /^An opened lì xì/ });
+  });
 });

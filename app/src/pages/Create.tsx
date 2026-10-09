@@ -6,8 +6,10 @@ import { BackupStep } from '../components/BackupPanel';
 import { Page } from '../components/Layout';
 import { Light } from '../components/Light';
 import { FeeHint } from '../components/FeeHint';
+import { TxProgress } from '../components/TxProgress';
 import { WalletPanel } from '../components/WalletPanel';
-import { Button, Notice, Working } from '../components/ui';
+import { Button, Notice } from '../components/ui';
+import type { TxStage } from '../chain/port';
 import { createEnvelope, freeIndex, loadOrCreateVault } from '../flows/create';
 import { LINKS } from '../lib/links';
 import { localVaultStore } from '../lib/storage';
@@ -116,7 +118,7 @@ export const Create = () => {
   const [kind, setKind] = useState<EnvelopeKind>('personal');
   const [split, setSplit] = useState<SplitMode>('random');
   const [duration, setDuration] = useState<number>(EXPIRY_PRESETS[1].seconds);
-  const [status, setStatus] = useState<{ sealing: boolean; error?: string }>({ sealing: false });
+  const [status, setStatus] = useState<{ sealing: boolean; stage?: TxStage; error?: string }>({ sealing: false });
   const [askBackup, setAskBackup] = useState(false);
 
   // Preview the index createEnvelope will use, skipping any already on chain.
@@ -162,7 +164,9 @@ export const Create = () => {
     setStatus({ sealing: true });
     try {
       const form = { total, count, kind, split: effectiveSplit, durationSeconds: duration };
-      const { id } = await createEnvelope(wallet.chain, store, form, wallet.recipient, services.now(), index);
+      const { id } = await createEnvelope(wallet.chain, store, form, wallet.recipient, services.now(), index, (stage) =>
+        setStatus({ sealing: true, stage }),
+      );
       navigate(`/share/${toHex(id)}`);
     } catch (error) {
       setStatus({ sealing: false, error: friendlyError(error) });
@@ -267,7 +271,10 @@ export const Create = () => {
               }
             />
           ) : status.sealing ? (
-            <Working>Sealing your envelope. About 30 seconds; keep this tab open.</Working>
+            <div className="space-y-4">
+              <p className="text-paper-soft">Sealing your envelope. Keep this tab open.</p>
+              <TxProgress stage={status.stage} prover={wallet.prover} />
+            </div>
           ) : askBackup ? (
             <BackupStep
               vault={vault.vault}

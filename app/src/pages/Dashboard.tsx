@@ -4,8 +4,10 @@ import type { SenderVault } from '@lixi/sdk';
 import { BackupString } from '../components/BackupPanel';
 import { Page } from '../components/Layout';
 import { Light, type LightState } from '../components/Light';
+import { TxProgress } from '../components/TxProgress';
 import { WalletPanel } from '../components/WalletPanel';
 import { Button, ButtonLink, Notice, Working } from '../components/ui';
+import type { TxStage } from '../chain/port';
 import { forgetEnvelope, refundEnvelope, restoreVault } from '../flows/manage';
 import { envelopeView, type EnvelopeView } from '../lib/status';
 import { localVaultStore } from '../lib/storage';
@@ -77,6 +79,7 @@ const Row = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [txHash, setTxHash] = useState<string>();
+  const [stage, setStage] = useState<TxStage>();
   const { saved } = view;
   const labels = view.shares.map((s, n) => {
     const { state: light, word } = lightOf(view, s.opened);
@@ -89,7 +92,7 @@ const Row = ({
     setBusy(true);
     setError(undefined);
     try {
-      const result = await refundEnvelope(state.wallet.chain, vault, saved.index, services.now());
+      const result = await refundEnvelope(state.wallet.chain, vault, saved.index, services.now(), setStage);
       if (result.ok) setTxHash(result.txHash);
       else setError(NOT_HOME[result.reason]);
       onChanged();
@@ -97,6 +100,7 @@ const Row = ({
       setError(friendlyError(e));
     } finally {
       setBusy(false);
+      setStage(undefined);
     }
   };
 
@@ -140,7 +144,11 @@ const Row = ({
         {error && <Notice tone="error">{error}</Notice>}
       </div>
       <div className="flex items-start gap-3 sm:justify-end">
-        {busy && <Working>Bringing it home…</Working>}
+        {busy && state.status === 'connected' && (
+          <div className="min-w-64">
+            <TxProgress stage={stage} prover={state.wallet.prover} />
+          </div>
+        )}
         {!busy && (view.state === 'open' || view.state === 'empty') && (
           <ButtonLink to={`/share/${view.idHex}`} tone="quiet">
             Show links

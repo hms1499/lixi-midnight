@@ -237,6 +237,36 @@
     box-shadow: none;
   }
 
+  /* ── Transaction progress (user moments spec §3.4): a check when done, a pulsing dot while in flight. ── */
+  .tx-mark {
+    position: relative;
+    flex: none;
+    width: 14px;
+    height: 14px;
+    margin-top: 5px;
+    border-radius: 999px;
+    border: 1px solid rgb(255 255 255 / 0.2);
+  }
+  .tx-row[data-state='now'] .tx-mark {
+    border-color: transparent;
+    background: var(--color-lantern);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .tx-row[data-state='done'] .tx-mark {
+    border-color: var(--color-seal);
+  }
+  .tx-row[data-state='done'] .tx-mark::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--color-seal);
+    border-width: 0 2px 2px 0;
+    rotate: 45deg;
+  }
+
   /* ── Icon links (spec §5.4). ── */
   .icon-link {
     position: relative;

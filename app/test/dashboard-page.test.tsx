@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, screen } from '@testing-library/react';
+import { act, cleanup, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { backupString, newVault, userAddressBytes } from '@lixi/sdk';
 import { refundEnvelope } from '../src/flows/manage';
@@ -141,5 +141,32 @@ describe('my envelopes', () => {
     expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(1);
     await user.click(screen.getByRole('button', { name: 'Restore from a backup string' }));
     expect(screen.getByLabelText('Restore from a backup string')).toBeTruthy();
+  });
+
+  it('shows each stage of bringing it home as it happens', async () => {
+    const user = userEvent.setup();
+    const { sim, show, create, chain } = setup();
+    await create();
+    sim.now = T0 + 2 * HOUR;
+    const realRefund = chain.refund;
+    let finish!: () => void;
+    chain.refund = async (privateState, id, onStage) => {
+      onStage?.('proving');
+      onStage?.('confirm');
+      onStage?.('sending');
+      await new Promise<void>((resolve) => (finish = resolve));
+      return realRefund(privateState, id, onStage);
+    };
+    show('/dashboard');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await user.click(await screen.findByRole('button', { name: 'Bring 2 tNIGHT home' }));
+    const list = await screen.findByRole('list', { name: 'Transaction progress' });
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((li) => li.dataset.state),
+    ).toEqual(['done', 'done', 'now', 'later']);
+    finish();
+    await screen.findByText('Came home: 2 tNIGHT.');
   });
 });

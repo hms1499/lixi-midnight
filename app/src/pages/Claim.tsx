@@ -5,8 +5,10 @@ import { Envelope, EnvelopeChecking, type EnvelopeState } from '../components/En
 import { Page } from '../components/Layout';
 import { Light } from '../components/Light';
 import { FeeHint } from '../components/FeeHint';
+import { TxProgress } from '../components/TxProgress';
 import { RequireWallet } from '../components/WalletPanel';
 import { Button, ButtonLink, Greeting, Notice } from '../components/ui';
+import type { ProverChoice, TxStage } from '../chain/port';
 import { claimWithLink, previewClaim, type ClaimPreview, type ClaimRefusal } from '../flows/claim';
 import { txUrl } from '../lib/links';
 import { formatNight } from '../lib/units';
@@ -106,7 +108,7 @@ const PasteLink = () => {
 type Phase =
   | { readonly step: 'checking' }
   | { readonly step: 'ready'; readonly preview: Extract<ClaimPreview, { ok: true }>; readonly error?: string }
-  | { readonly step: 'opening' }
+  | { readonly step: 'opening'; readonly prover: ProverChoice; readonly stage?: TxStage }
   | { readonly step: 'opened'; readonly amount: bigint; readonly txHash: string }
   | { readonly step: 'refused'; readonly reason: ClaimRefusal }
   | { readonly step: 'failed'; readonly message: string };
@@ -174,11 +176,13 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
   const preview = phase.step === 'ready' ? phase.preview : undefined;
   const expires = preview ? new Date((services.now() + preview.secondsLeft) * 1000) : undefined;
   const envelopeState: EnvelopeState = opening ? 'opening' : 'sealed';
-  const open = async (chain: Parameters<typeof claimWithLink>[0], recipient: Uint8Array) => {
+  const open = async (chain: Parameters<typeof claimWithLink>[0], recipient: Uint8Array, prover: ProverChoice) => {
     const before = phase;
-    setPhase({ step: 'opening' });
+    setPhase({ step: 'opening', prover });
     try {
-      const result = await claimWithLink(chain, link, recipient, services.now);
+      const result = await claimWithLink(chain, link, recipient, services.now, (stage) =>
+        setPhase({ step: 'opening', prover, stage }),
+      );
       setPhase(
         result.ok
           ? { step: 'opened', amount: result.amount, txHash: result.txHash }
@@ -199,12 +203,11 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
           <p className="text-paper-soft">
             Your wallet is proving that you hold this link, without showing the link to anyone.
           </p>
-          <p role="status" className="text-sm text-paper-dim">
-            Proving, then your wallet asks you to confirm.
-          </p>
-          <div className="mx-auto h-0.5 w-56 overflow-hidden rounded bg-white/10">
-            <div className="h-full w-1/2 animate-pulse bg-lantern motion-reduce:animate-none" />
-          </div>
+          {phase.step === 'opening' && (
+            <div className="mx-auto max-w-xs pt-2">
+              <TxProgress stage={phase.stage} prover={phase.prover} />
+            </div>
+          )}
         </>
       ) : (
         preview && (
@@ -231,7 +234,7 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
                 {(wallet) => (
                   <div className="space-y-4">
                     <FeeHint wallet={wallet} />
-                    <Button type="button" onClick={() => open(wallet.chain, wallet.recipient)}>
+                    <Button type="button" onClick={() => open(wallet.chain, wallet.recipient, wallet.prover)}>
                       Open the lì xì
                     </Button>
                   </div>

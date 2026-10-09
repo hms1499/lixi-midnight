@@ -275,4 +275,30 @@ describe('create and share', () => {
     await user.clear(screen.getByLabelText('Number of lì xì'));
     expect((screen.getByRole('button', { name: /^Saved, seal/ }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it('shows each stage of sealing as it happens', async () => {
+    const user = userEvent.setup();
+    const { show, store, chain } = setup();
+    store.save({ seed: new Uint8Array(32).fill(7), envelopes: [] }); // a new vault would reset the backup flag
+    store.setBackedUp(true);
+    const realCreate = chain.create;
+    let finish!: () => void;
+    chain.create = async (privateState, args, onStage) => {
+      onStage?.('proving');
+      await new Promise<void>((resolve) => (finish = resolve));
+      return realCreate(privateState, args, onStage);
+    };
+    show('/create');
+    await user.click(await screen.findByRole('button', { name: 'Connect Test Wallet' }));
+    await user.click(await screen.findByRole('button', { name: 'Seal 4 lì xì' }));
+    await screen.findByText('Sealing your envelope. Keep this tab open.');
+    const list = screen.getByRole('list', { name: 'Transaction progress' });
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((li) => li.dataset.state),
+    ).toEqual(['now', 'later', 'later', 'later']);
+    finish();
+    await screen.findByRole('heading', { name: /ready to hand out/ });
+  });
 });
