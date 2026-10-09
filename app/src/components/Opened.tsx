@@ -40,7 +40,7 @@ export const SlipAmount = ({ amount }: { amount: bigint }) => {
   return (
     <span className="flex h-full flex-col items-center justify-start overflow-hidden px-1 pt-2 text-center">
       <span className={`font-semibold text-lantern-deep ${sizeFor(final)}`}>{shown}</span>
-      <span className="text-[10px] tracking-wide text-seal-ink uppercase">tNIGHT</span>
+      <span className="text-[10px] tracking-wide text-seal-ink">tNIGHT</span>
     </span>
   );
 };

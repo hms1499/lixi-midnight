@@ -154,7 +154,6 @@
     width: 132px;
     height: 172px;
     margin-inline: auto;
-    transition: margin-top 0.6s ease;
   }
   .envelope-xl::before {
     content: '';
@@ -210,9 +209,6 @@
   }
   .envelope-xl[data-state='opening'] .body {
     animation: pulse-big 1.6s ease-in-out infinite;
-  }
-  .envelope-xl[data-state='opened'] {
-    margin-top: 96px;
   }
   .envelope-xl[data-state='opened']::before {
     opacity: 1;

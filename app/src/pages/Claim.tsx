@@ -153,9 +153,12 @@ const Claimer = ({ link }: { link: ClaimLink }) => {
       <Page>
         <div className="relative mx-auto max-w-xl space-y-5 text-center">
           <Blossoms />
-          <Envelope state="opened" label={`An opened lì xì: ${formatNight(phase.amount)} tNIGHT`}>
-            <SlipAmount amount={phase.amount} />
-          </Envelope>
+          {/* Room above for the slip, which rises ~62 px out of the envelope; below the sticky header. */}
+          <div className="pt-24">
+            <Envelope state="opened" label={`An opened lì xì: ${formatNight(phase.amount)} tNIGHT`}>
+              <SlipAmount amount={phase.amount} />
+            </Envelope>
+          </div>
           <h1 className="sr-only">You opened {formatNight(phase.amount)} tNIGHT</h1>
           <Greeting className="pt-4">An khang thịnh vượng</Greeting>
           <PrivacyReceipt amount={phase.amount} total={phase.total} kind={link.kind} />
