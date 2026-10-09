@@ -45,6 +45,78 @@
       </p>
     </section>
 
+    <section id="s7" style="justify-content: flex-start" hidden>
+      <h2 style="font-size: 32px" data-at="0">
+        One Compact contract: <span class="good">createEnvelope · claim · refund</span>
+      </h2>
+      <div class="layer" style="top: 130px" data-at="0.12" data-out="0.62">
+        <div class="cols" style="grid-template-columns: 0.62fr 1.38fr; gap: 28px; align-items: center">
+          <div>
+            <div class="box private" data-at="0.14">
+              <b>In the browser · private witnesses</b>the share and its Merkle path
+            </div>
+            <div class="arrow" data-at="0.26">↓</div>
+            <div class="box" data-at="0.27"><b>Zero-knowledge proof</b>the path leads to the envelope's root</div>
+            <div class="arrow" data-at="0.36">↓</div>
+            <div class="box chain" data-at="0.37"><b>On chain</b>a one-time nullifier joins the spent set</div>
+            <div class="arrow" data-at="0.44">↓</div>
+            <div class="box chain" data-at="0.45"><b>Payout</b>unshielded tNIGHT: public, but not which link paid</div>
+          </div>
+          <pre id="code" style="font-size: 11px" data-at="0.26"></pre>
+        </div>
+      </div>
+      <div class="layer" style="top: 130px" data-at="0.63">
+        <div class="cols">
+          <div class="panel">
+            <h3>The chain sees</h3>
+            <div class="row" data-at="0.65">that an envelope exists, its total and its expiry</div>
+            <div class="row" data-at="0.68">whether it uses a group link</div>
+            <div class="row" data-at="0.71">the sender's address</div>
+            <div class="row" data-at="0.74">each opening: who received, and how much</div>
+          </div>
+          <div class="panel">
+            <h3 class="good">It never sees</h3>
+            <div class="row good" data-at="0.78">with lucky amounts, how many lì xì a personal envelope holds</div>
+            <div class="row good" data-at="0.84">with lucky amounts, the sizes of the lì xì nobody has opened</div>
+            <div class="row good" data-at="0.88">which link paid which opening</div>
+            <div class="row good" data-at="0.91">the secrets inside the links</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <script>
+      window.hooks = window.hooks || {};
+      window.hooks.s7 = {
+        setup: (data) => {
+          document.getElementById('code').textContent = data.code;
+        },
+      };
+    </script>
+
+    <section id="s9" hidden>
+      <div class="cols3">
+        <div class="panel" data-at="0.02">
+          <h3>Who it is for</h3>
+          <div class="row" data-at="0.06">Vietnamese families, every Tết</div>
+          <div class="row" data-at="0.12">Weddings and birthdays</div>
+          <div class="row" data-at="0.18">The diaspora, sending lì xì home</div>
+        </div>
+        <div class="panel" data-at="0.27">
+          <h3>Today</h3>
+          <div class="row" data-at="0.32">Preprod only: tNIGHT has no value</div>
+          <div class="row" data-at="0.38">Desktop Chrome with 1AM</div>
+          <div class="row" data-at="0.45">Payouts are public</div>
+        </div>
+        <div class="panel" data-at="0.56">
+          <h3 class="good">Wave 3</h3>
+          <div class="row" data-at="0.62">1AM mobile app</div>
+          <div class="row" data-at="0.7">A fee sponsor for any wallet</div>
+          <div class="row" data-at="0.8">Shielded payouts</div>
+          <div class="row" data-at="0.88">QR codes for giving in person</div>
+        </div>
+      </div>
+    </section>
+
     <script src="anim.js"></script>
   </body>
 </html>

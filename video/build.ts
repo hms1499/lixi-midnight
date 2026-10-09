@@ -6,7 +6,8 @@ import { cueTimes, toSrt, type Cue } from './lib/captions.ts';
 import { renderCard, writeTokens } from './lib/cards.ts';
 import { encodeScene, joinScenes, type Overlay } from './lib/ffmpeg.ts';
 import { renderOverlays } from './lib/overlays.ts';
-import { OUT } from './lib/paths.ts';
+import { claimCircuit } from './lib/code.ts';
+import { OUT, ROOT } from './lib/paths.ts';
 import { audioSeconds, synthesize } from './lib/speech.ts';
 import { LEAD, sceneSeconds } from './lib/timing.ts';
 import { SCENES, VOICE, narrationFor, type Scene } from './script.ts';
@@ -31,6 +32,9 @@ writeTokens();
 const testCount = 0; // Task 8 replaces this with the real count
 const live = false; // Task 10 replaces this
 
+const cardData = (id: string): unknown =>
+  id === 's7' ? { code: claimCircuit(readFileSync(`${ROOT}contract/src/lixi.compact`, 'utf8')) } : {};
+
 const browser = await launch({ fileAccess: true });
 try {
   for (const scene of SCENES.filter(wanted)) {
@@ -45,7 +49,7 @@ try {
     let seconds: number;
     if (scene.kind === 'card') {
       seconds = sceneSeconds(speech);
-      await renderCard(browser, { scene: scene.id, seconds, data: {}, dir: `${dir}/frames` });
+      await renderCard(browser, { scene: scene.id, seconds, data: cardData(scene.id), dir: `${dir}/frames` });
       visual = { video: ['-framerate', '30', '-i', `${dir}/frames/%05d.jpg`], footage: seconds, labels: [] };
     } else {
       throw new Error(`${scene.id}: ${scene.kind} scenes are built in a later task`);

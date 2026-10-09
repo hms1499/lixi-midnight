@@ -181,3 +181,15 @@ img.shot {
   border-radius: 12px;
   border: 1px solid rgb(239 226 207 / 0.18);
 }
+#s7 .box {
+  padding: 10px 14px;
+  font-size: 14.5px;
+}
+#s7 .box b {
+  font-size: 15.5px;
+  margin-bottom: 2px;
+}
+#s7 .arrow {
+  font-size: 18px;
+  line-height: 1.2;
+}
