@@ -6,5 +6,5 @@
     "types": ["vite/client"],
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "test", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src", "test", "demo", "vite.config.ts", "vite.demo.config.ts", "vitest.config.ts"]
 }

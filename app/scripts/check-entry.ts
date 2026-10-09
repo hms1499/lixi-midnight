@@ -4,6 +4,11 @@ import { wasmInEntry, type Manifest } from './entry-graph.ts';
 
 const dist = new URL('../dist/', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('.vite/manifest.json', dist), 'utf8')) as Manifest;
+const demo = Object.keys(manifest).find((key) => key.startsWith('demo/'));
+if (demo) {
+  console.error(`check-entry: ${demo} is in the build; the demo entry is dev-only (demo video spec §5.4).`);
+  process.exit(1);
+}
 const culprit = wasmInEntry(manifest, (file) => readFileSync(new URL(file, dist), 'utf8'));
 if (culprit) {
   console.error(
