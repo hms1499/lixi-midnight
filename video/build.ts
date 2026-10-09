@@ -1,11 +1,13 @@
 // Builds the demo video (spec §5). Usage: node build.ts [--scene s3]… [--all] [--fresh-tests] [--fallback-tx <hash>]
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { launch, newContext } from './lib/browser.ts';
 import { cueTimes, toSrt, type Cue } from './lib/captions.ts';
 import { renderCard, writeTokens } from './lib/cards.ts';
+import { captureDemo } from './lib/demo-capture.ts';
 import { encodeScene, joinScenes, type Overlay } from './lib/ffmpeg.ts';
+import { clip, concatList, writeFrames } from './lib/frames.ts';
 import { renderOverlays } from './lib/overlays.ts';
 import { claimCircuit } from './lib/code.ts';
 import { OUT, ROOT } from './lib/paths.ts';
@@ -29,6 +31,12 @@ type Visual = { video: string[]; footage: number; labels: Overlay[] };
 const named = values.scene!;
 const wanted = (s: Scene) =>
   values.all || named.includes(s.id) || (named.length === 0 && !existsSync(`${OUT}${s.id}.mp4`));
+
+// Scenes 3, 4 and 6 come from one recording, so recording any of them rebuilds all three.
+const CAPTURES = ['s3', 's4', 's6'] as const;
+const isCapture = (s: Scene) => (CAPTURES as readonly string[]).includes(s.id);
+const recordDemo = SCENES.some((s) => isCapture(s) && wanted(s));
+const toBuild = SCENES.filter((s) => wanted(s) || (recordDemo && isCapture(s)));
 
 writeTokens();
 type TestRun = { lines: TestLine[]; count: number; seconds: number };
@@ -70,7 +78,19 @@ try {
     await page.screenshot({ path: ciPng });
     await page.close();
   }
-  for (const scene of SCENES.filter(wanted)) {
+  if (recordDemo) {
+    console.log('recording the simulator demo (scenes 3, 4, 6)…');
+    const { shots, scenes } = await captureDemo(browser);
+    for (const id of CAPTURES) {
+      const dir = `${OUT}${id}/frames`;
+      rmSync(dir, { recursive: true, force: true });
+      const { start, end } = scenes[id];
+      const frames = writeFrames(clip(shots, start, end), dir);
+      writeFileSync(`${OUT}${id}/frames.txt`, concatList(frames, end - start));
+      writeFileSync(`${OUT}${id}/footage.json`, JSON.stringify({ seconds: end - start }));
+    }
+  }
+  for (const scene of toBuild) {
     const dir = `${OUT}${scene.id}`;
     mkdirSync(dir, { recursive: true });
     const text = narrationFor(scene, testCount, live);
@@ -84,6 +104,10 @@ try {
       seconds = sceneSeconds(speech);
       await renderCard(browser, { scene: scene.id, seconds, data: cardData(scene.id, seconds), dir: `${dir}/frames` });
       visual = { video: ['-framerate', '30', '-i', `${dir}/frames/%05d.jpg`], footage: seconds, labels: [] };
+    } else if (scene.kind === 'capture') {
+      const footage = (JSON.parse(readFileSync(`${dir}/footage.json`, 'utf8')) as { seconds: number }).seconds;
+      seconds = sceneSeconds(speech, footage);
+      visual = { video: ['-f', 'concat', '-safe', '0', '-i', `${dir}/frames.txt`], footage, labels: [] };
     } else {
       throw new Error(`${scene.id}: ${scene.kind} scenes are built in a later task`);
     }

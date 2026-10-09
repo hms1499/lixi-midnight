@@ -1,5 +1,5 @@
 import { LixiSimulator } from '@lixi/contract/testing';
-import { claimUrl, deriveEnvelope, linksFor } from '@lixi/sdk';
+import { claimUrl, deriveEnvelope, linksFor, userAddressBytes } from '@lixi/sdk';
 import type { ConnectedAPI, InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
 import type { LixiChain } from '../src/chain/port';
 import { createEnvelope } from '../src/flows/create';
@@ -61,11 +61,11 @@ export const demoLinks = (demo: Demo, envelope: number): string[] => {
   return linksFor(deriveEnvelope(vault.seed, vault.envelopes[envelope])).map((link) => claimUrl('', link));
 };
 
-/** Seals 6 tNIGHT as one group link for 3 wallets, off camera, and returns its claim path. */
+/** Seals 6 tNIGHT as one group link for 3 wallets, off camera, refunding to the demo wallet; returns its claim path. */
 export const sealGroup = async (demo: Demo): Promise<string> => {
   const store = localVaultStore(demo.services.storage);
   const form = { total: 6_000_000n, count: 3, split: 'equal', kind: 'group', durationSeconds: 86400 } as const;
-  await createEnvelope(demo.chain, store, form, crypto.getRandomValues(new Uint8Array(32)), demo.sim.now);
+  await createEnvelope(demo.chain, store, form, userAddressBytes(DEMO_ADDRESS, 'undeployed'), demo.sim.now);
   const vault = store.load()!;
   return demoLinks(demo, vault.envelopes.length - 1)[0];
 };

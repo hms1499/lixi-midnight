@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
@@ -51,10 +51,22 @@ describe('demo entry (demo video spec §5.4)', () => {
     await screen.findByText(/^Came home:/);
   });
 
+  it('seals the group envelope to the demo wallet, so the dashboard has no other-wallet note', async () => {
+    const user = userEvent.setup();
+    const demo = start();
+    await sealGroup(demo);
+    demo.advance(2 * 86400); // the note sits beside the bring-home button, which shows after expiry
+    show(demo, '/dashboard');
+    await user.click(await screen.findByRole('button', { name: 'Connect Demo wallet' }));
+    await screen.findByRole('button', { name: /^Bring .* home$/ });
+    expect(screen.queryByText(/not to Demo wallet/)).toBeNull();
+  });
+
   it('a group link opens once per wallet', async () => {
     const user = userEvent.setup();
     const demo = start();
     const link = await sealGroup(demo);
+    expect(demo.sim.ledger().envelopes.size()).toBe(1n);
     show(demo, link);
     await user.click(await screen.findByRole('button', { name: 'Connect Demo wallet to open it' }));
     await user.click(await screen.findByRole('button', { name: 'Open the lì xì' }));
