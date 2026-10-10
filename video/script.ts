@@ -10,8 +10,13 @@ export type Scene = {
   label?: string;
 };
 
-/** The macOS voice, chosen by the user (2026-10-09). */
+/**
+ * The macOS voice, chosen by the user (2026-10-09). Since 2026-10-10 it is not heard: its length still paces each
+ * scene and its captions, and the music below plays instead.
+ */
 export const VOICE = 'Samantha';
+/** The background track, chosen by the user (2026-10-10). Source and licence in `music/README.md`. */
+export const MUSIC = 'music/scaling-up.m4a';
 export const SIM_LABEL = 'Local simulator running the compiled contract (no proofs)';
 export const LIVE_LABEL = 'Live on Preprod · 1AM';
 

@@ -10,11 +10,11 @@ import { encodeScene, joinScenes, labelSpans, type Overlay } from './lib/ffmpeg.
 import { clip, concatList, writeFrames, type Frame } from './lib/frames.ts';
 import { renderOverlays } from './lib/overlays.ts';
 import { claimCircuit } from './lib/code.ts';
-import { OUT, ROOT } from './lib/paths.ts';
+import { OUT, ROOT, VIDEO } from './lib/paths.ts';
 import { audioSeconds, synthesize } from './lib/speech.ts';
 import { recordTestRun, terminalLines, type TestLine } from './lib/tests.ts';
 import { LEAD, sceneSeconds } from './lib/timing.ts';
-import { SCENES, VOICE, narrationFor, type Scene } from './script.ts';
+import { MUSIC, SCENES, VOICE, narrationFor, type Scene } from './script.ts';
 
 const { values } = parseArgs({
   options: {
@@ -157,8 +157,6 @@ try {
     await renderOverlays(items);
     await encodeScene({
       video: visual.video,
-      voice,
-      lead: LEAD,
       overlays: [...overlays, ...visual.labels],
       seconds,
       out: `${OUT}${scene.id}.mp4`,
@@ -180,7 +178,7 @@ if (SCENES.every((s) => existsSync(`${OUT}${s.id}.mp4`))) {
   }
   await joinScenes(
     SCENES.map((s) => `${OUT}${s.id}.mp4`),
-    `${OUT}lixi-wave2.mp4`,
+    { music: `${VIDEO}${MUSIC}`, seconds: offset, out: `${OUT}lixi-wave2.mp4` },
   );
   writeFileSync(`${OUT}lixi-wave2.srt`, toSrt(all));
   console.log(`lixi-wave2.mp4: ${offset.toFixed(1)} s`);

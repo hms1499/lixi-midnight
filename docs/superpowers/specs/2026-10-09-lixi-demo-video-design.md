@@ -126,6 +126,7 @@ The scripts are TypeScript run directly by Node 24, like `app/scripts/*.ts`. Pla
 - Captions and corner labels are rendered by Playwright as transparent PNGs (Fraunces, light text on a translucent dark band) and overlaid per cue, because the installed ffmpeg 8.1 has no libass `subtitles` filter.
 - Final: each scene fades in and out over 0.3 s, the scenes are joined in order, and loudness is normalised to −16 LUFS. Outputs: `out/lixi-wave2.mp4` and `out/lixi-wave2.srt`.
 - No background music (no licensed track, and the narration carries the video).
+- **Changed 2026-10-10:** the user did not like the voice, so the video has no voice. Scenes are encoded silent; the join lays one CC0 track under the whole video ("Scaling Up" by Ruskerdax, `video/music/`), cut to length, faded in over 2 s and out over 3 s, at −18 LUFS. The voice is still synthesised to pace each scene and its captions, which now carry the narration alone.
 
 ## 6. Checks
 
@@ -137,6 +138,6 @@ The scripts are TypeScript run directly by Node 24, like `app/scripts/*.ts`. Pla
 ## 7. Out of scope
 
 - Uploading the video, or editing `wave-2.md` (the user pastes the link).
-- A Vietnamese version, background music, a human voice, cloud TTS.
+- A Vietnamese version, a human voice, cloud TTS. (Background music was added on 2026-10-10, see §5.7.)
 - Changing the deck. The deck's wording check stays a separate task.
 - Shipping the demo entry on the live site.
