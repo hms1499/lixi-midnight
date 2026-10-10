@@ -124,6 +124,22 @@ Lixi is a new project: everything below was designed, built, deployed and tested
 - Announcement on X: https://x.com/YMongne573/status/2108751139630195014
 ````
 
+## Milestone (3rd Wave)
+
+Paste the block below into the Milestone field for the 3rd Wave (build period 2026-10-27 to 2026-11-16).
+
+````markdown
+**Goal for Wave 3: lì xì people can open on a phone, with more of the payout private.**
+
+1. **Open on a phone (week 1).** Make the claim page work inside the 1AM mobile app, and add a QR code for every link so a lì xì can be given in person. Done when a link opened on a phone pays out on Preprod.
+2. **Fees for any wallet (week 1–2).** Bring the existing sponsor script (already covered by the devnet end-to-end suite) into the app, so recipients with no DUST can open a lì xì whatever wallet they use.
+3. **Shielded payouts (week 2–3).** Pay each lì xì as a shielded output, so the chain no longer shows who received how much. Start with a spike; ship it behind an option if proving time and wallet support allow, and report the result either way.
+4. **Bigger envelopes (week 3).** Raise the limit from 16 to 32 lì xì (Merkle depth 4 → 5), with the proving-time cost measured and stated.
+5. **Branded envelopes, first version (week 3).** A sender can pick an envelope design and see a campaign view (opened, left, brought home), the first step of the business model.
+
+Every item ships with tests against the real compiled contract, an updated README, and a changelog of what changed since Wave 2.
+````
+
 ## Changes since the previous submission
 
 First submission (joined in Wave 2).
