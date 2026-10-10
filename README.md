@@ -41,7 +41,7 @@ npm test   # compiles the contract, then runs every suite; contract, SDK and app
 | `contract` | 32 | The Compact contract in the simulator: funding, Merkle paths, nullifiers, group limits, expiry, refund, forged Merkle paths and tampered shares |
 | `sdk` | 44 | Seed derivation, splits, link encoding, Merkle trees, the sender vault, recovery, pre-checks |
 | `cli` | 19 | Network config, sync progress, wallet cache, secret and output redaction (the chain scripts themselves run in the devnet suite) |
-| `app` | 114 | Every page in jsdom against the compiled contract: create, share, claim, dashboard, refund, CSP |
+| `app` | 172 | Every page in jsdom against the compiled contract: create, share, claim, dashboard, refund, CSP |
 
 CI runs all of them, plus the full compile with proving keys, on every push. A separate workflow runs the devnet end-to-end suite (deploy → concurrent claims from different wallets → sponsored claim → refund) against a local node; start it with the Docker command under [Develop](#develop), then run `npm run test:devnet -w @lixi/cli`.
 

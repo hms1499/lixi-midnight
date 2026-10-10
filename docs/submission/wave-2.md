@@ -18,7 +18,7 @@ A sender seals tNIGHT into an envelope of up to 16 lì xì (lucky or equal amoun
 
 Midnight integration: one Compact contract (`createEnvelope`, `claim`, `refund`) keeps, per envelope, a Merkle root, the deposit, the expiry, the refund address and the group flag; never the split or the link secrets. The split and the link secrets stay in the browser as private witnesses; payouts are unshielded tNIGHT, so the transfer is public while the link stays secret. Proofs are made in 1AM by default or by a proof server on the user's own machine, and the contract's maintenance authority is given up at deploy.
 
-What works end to end on Preprod: sealing, personal and group links, opening, refusing a second opening from the same wallet, and bringing unopened lì xì home after expiry. Concurrent claims from different wallets are covered by the devnet end-to-end suite. 209 tests across the contract, SDK, CLI and app run in CI on every push, plus a devnet end-to-end workflow.
+What works end to end on Preprod: sealing, personal and group links, opening, refusing a second opening from the same wallet, and bringing unopened lì xì home after expiry. Concurrent claims from different wallets are covered by the devnet end-to-end suite. 267 tests across the contract, SDK, CLI and app run in CI on every push, plus a devnet end-to-end workflow.
 
 ## Links
 
