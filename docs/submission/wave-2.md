@@ -88,6 +88,42 @@ Tết lucky money, weddings, birthdays, team bonuses and community giveaways. We
 - Contract on Preprod: https://github.com/hms1499/lixi-midnight/blob/main/deployments/preprod.json
 - Announcement on X: https://x.com/YMongne573/status/2108751139630195014
 
+## Updates in this Wave
+
+Paste the block below into "Updates in this Wave".
+
+````markdown
+Lixi is a new project: everything below was designed, built, deployed and tested during Wave 2 (first commit 2026-09-30; 129 commits).
+
+**Contract (Compact)**
+- `lixi.compact` with `createEnvelope`, `claim` and `refund`: a Poseidon Merkle root per envelope, one-time nullifiers, a one-per-wallet group mode, expiry guards, and refunds of everything unopened after expiry.
+- The split lives in the sender's private state (a witness); a claim proves a Merkle path without revealing which lì xì it is. `claim` only reads the envelope, so concurrent claims never conflict.
+- Deployed to Preprod with the maintenance authority relinquished: https://github.com/hms1499/lixi-midnight/blob/main/deployments/preprod.json
+- A written design with a security audit and its fixes: https://github.com/hms1499/lixi-midnight/blob/main/docs/superpowers/specs/2026-09-30-lixi-design.md
+
+**SDK and CLI**
+- SDK: seed-derived envelopes, equal and lucky splits, claim links whose secret lives only in the URL fragment, a sender vault with a backup string and recovery, pre-checks that mirror the contract's asserts, midnight-js wrappers.
+- CLI: headless wallet, deploy, smoke and sponsor scripts, and a devnet end-to-end suite (deploy, concurrent claims from different wallets, sponsored claim, refund).
+- Moved Preprod reads to Blockfrost when Midnight announced the shutdown of its official Preprod indexer.
+
+**Web app (live: https://lixi-3nv.pages.dev)**
+- Fill an envelope as a sentence, share personal or group links, open a lì xì with 1AM (1AM pays the fee), and bring unopened lì xì home from My envelopes.
+- Every transaction shows its real stages (proving, confirm, sending, waiting for a block) and links to the Preprod explorer.
+- After opening, a receipt says what the chain saw and what it never saw.
+- Wallet balances and fee warnings, a backup and restore flow, link previews for chat apps, a desktop-only notice on phones, a strict Content-Security-Policy, and a first paint that does not wait for WebAssembly.
+
+**Quality**
+- 267 tests (contract 32, SDK 44, CLI 19, app 172), all against the real compiled contract, in CI on every push, plus a devnet end-to-end workflow.
+- Manual Preprod runs with real 1AM wallets: sealing, personal and group openings, refusing a second opening from the same wallet, and bringing lì xì home.
+
+**Deliverables**
+- Code (Apache-2.0): https://github.com/hms1499/lixi-midnight
+- Live site: https://lixi-3nv.pages.dev
+- Demo video: https://www.youtube.com/watch?v=Wdiv_WxkL34
+- Slides: https://github.com/hms1499/lixi-midnight/blob/main/docs/slides/lixi-wave2.pdf
+- Announcement on X: https://x.com/YMongne573/status/2108751139630195014
+````
+
 ## Changes since the previous submission
 
 First submission (joined in Wave 2).
