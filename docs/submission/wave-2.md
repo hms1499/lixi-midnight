@@ -27,6 +27,7 @@ What works end to end on Preprod: sealing, personal and group links, opening, re
 - Slide deck: https://github.com/hms1499/lixi-midnight/blob/main/docs/slides/lixi-wave2.pdf (PDF)
 - Demo video: (paste the link here)
 - Contract on Preprod: https://github.com/hms1499/lixi-midnight/blob/main/deployments/preprod.json
+- Announcement on X: https://x.com/YMongne573/status/2108751139630195014
 
 ## Changes since the previous submission
 
